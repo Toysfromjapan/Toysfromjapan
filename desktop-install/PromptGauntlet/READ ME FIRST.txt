@@ -1,0 +1,39 @@
+PROMPT GAUNTLET - LOCAL INSTALL
+================================
+
+WHAT'S IN THIS FOLDER
+  Prompt Gauntlet.html      The interactive tool. Double-click to open it in your
+                            browser. It works offline and saves your takes in that browser.
+  skill/prompt-gauntlet     The Claude skill (instructions, scoring rubric, model notes).
+  Install on Mac.command    Installs both on a Mac.
+  Install on Windows.bat    Installs both on Windows.
+
+INSTALL
+  Mac:      Double-click "Install on Mac.command".
+            If macOS blocks it, right-click the file, choose Open, then click Open.
+  Windows:  Double-click "Install on Windows.bat".
+            If SmartScreen appears, click "More info", then "Run anyway".
+
+  The installer:
+    1. Copies the skill to  ~/.claude/skills/prompt-gauntlet
+       (Windows: C:\Users\<you>\.claude\skills\prompt-gauntlet)
+    2. Puts "Prompt Gauntlet.html" on your Desktop.
+
+WHERE THE SKILL WORKS
+  Claude Code, and the Code tab of the Claude desktop app, load skills from
+  that folder automatically. Restart Claude after installing, then say
+  "run this through the gauntlet" and paste a prompt.
+
+  Regular chats in the Claude app and on claude.ai use skills saved to your
+  account instead. For those, use the prompt-gauntlet.skill file and click
+  "Save skill", or upload it under Settings > Capabilities > Skills.
+
+INSTALL BY HAND (if a script won't run)
+  1. Create the folder  .claude/skills  inside your home folder.
+     On a Mac, press Cmd+Shift+. in Finder to show hidden folders.
+  2. Copy the "prompt-gauntlet" folder from "skill" into it.
+  3. Copy "Prompt Gauntlet.html" anywhere you like, such as your Desktop.
+
+NOTE
+  The "Summon the judge" panel in the HTML tool appears only when the tool is
+  opened on claude.ai. Everything else works offline on your desktop.

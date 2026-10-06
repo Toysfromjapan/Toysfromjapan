@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<!-- PAGE:START -->
+<title>Prompt Gauntlet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a camera-report sheet. Left column = the contender, the forge and the judge; right column = the ten trials, read top to bottom. */
+:root {
+  --paper: #E9EBE5;
+  --sheet: #F6F7F2;
+  --ink: #16191B;
+  --muted: #5B635E;
+  --line: #C7CBC1;
+  --accent: #2443B5;
+  --accent-ink: #FFFFFF;
+  --pass: #2B7A4B;
+  --weak: #A86F00;
+  --fail: #B3262F;
+  --skip: #8C938E;
+  --pass-bg: #DCEBDF;
+  --weak-bg: #F3E6C8;
+  --fail-bg: #F4D9D9;
+  --field: #FFFFFF;
+  --f-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", Impact, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111416; --sheet: #191D20; --ink: #E8EAE3; --muted: #9AA29D; --line: #2D3337;
+    --accent: #8FA3FF; --accent-ink: #0E1220;
+    --pass: #5CC28A; --weak: #E2B240; --fail: #FF6E6E; --skip: #6F7772;
+    --pass-bg: #17301F; --weak-bg: #33290F; --fail-bg: #3A1719; --field: #0F1214;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111416; --sheet: #191D20; --ink: #E8EAE3; --muted: #9AA29D; --line: #2D3337;
+  --accent: #8FA3FF; --accent-ink: #0E1220;
+  --pass: #5CC28A; --weak: #E2B240; --fail: #FF6E6E; --skip: #6F7772;
+  --pass-bg: #17301F; --weak-bg: #33290F; --fail-bg: #3A1719; --field: #0F1214;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 0 48px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Header ---------- */
+.clapper { height: 14px; background: repeating-linear-gradient(-55deg, var(--ink) 0 18px, var(--paper) 18px 36px); }
+header.top { display: grid; grid-template-columns: 1fr auto; gap: 12px 24px; align-items: end; padding-block: 22px 18px; border-bottom: 2px solid var(--ink); }
+.brand { font-family: var(--f-display); font-weight: 900; font-size: clamp(44px, 8vw, 88px); line-height: .86; letter-spacing: .5px; text-transform: uppercase; }
+.brand span { color: var(--accent); }
+.tagline { margin-top: 8px; color: var(--muted); max-width: 52ch; }
+.slate { display: grid; grid-template-columns: repeat(4, auto); border: 2px solid var(--ink); font-family: var(--f-mono); font-size: 12px; }
+.slate div { padding: 6px 12px; border-left: 1px solid var(--ink); }
+.slate div:first-child { border-left: 0; }
+.slate b { display: block; font-size: 10px; letter-spacing: .12em; color: var(--muted); font-weight: 500; }
+.slate output { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Grid ---------- */
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "contender trials" "forge trials" "judge trials" "log trials"; gap: 0 32px; align-items: start; margin-top: 24px; }
+#contender { grid-area: contender; } #trials { grid-area: trials; } #forge { grid-area: forge; } #judge { grid-area: judge; } #log { grid-area: log; }
+#trials { grid-row: 1 / span 5; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "contender" "trials" "forge" "judge" "log"; }
+  #trials { grid-row: auto; }
+  header.top { grid-template-columns: 1fr; }
+  .slate { justify-self: start; }
+}
+@media (max-width: 480px) {
+  .wrap { padding-inline: 16px; }
+  main .verdict { padding: 14px; gap: 6px 14px; }
+  main .score { font-size: 64px; }
+  main .score small { font-size: 18px; }
+  main .stamp { font-size: 22px; padding: 2px 8px; }
+  .slate { grid-template-columns: repeat(2, auto); }
+  .slate div:nth-child(3) { border-left: 0; }
+  .slate div:nth-child(n+3) { border-top: 1px solid var(--ink); }
+}
+
+section.block { padding-block: 0 28px; min-width: 0; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 14px; }
+h2 { font-family: var(--f-display); font-weight: 800; font-size: 30px; text-transform: uppercase; letter-spacing: .4px; line-height: 1; margin-bottom: 10px; }
+.hint { color: var(--muted); font-size: 13px; }
+
+/* ---------- Contender ---------- */
+textarea { width: 100%; background: var(--field); border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px 14px; resize: vertical; line-height: 1.55; }
+textarea:focus { border-color: var(--accent); outline: none; }
+#prompt { min-height: 170px; font-size: 15px; }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+label.field { display: grid; gap: 4px; font-size: 11px; font-family: var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+select, input[type="text"] { width: 100%; background: var(--field); border: 1.5px solid var(--line); border-radius: var(--r); padding: 8px 10px; font-family: var(--f-body); font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+input[type="text"]:focus, select:focus { border-color: var(--accent); outline: none; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 12px; font-size: 14px; }
+.toggles label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+.model-note { margin-top: 10px; font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+.btn { border: 1.5px solid var(--ink); background: transparent; padding: 9px 16px; border-radius: var(--r); cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover { background: var(--sheet); }
+.btn.primary { background: var(--ink); color: var(--paper); font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 22px; }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.small { padding: 5px 10px; font-size: 13px; }
+.btn.accent { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.example-flag { font-family: var(--f-mono); font-size: 11px; color: var(--weak); letter-spacing: .06em; }
+
+/* ---------- Verdict ---------- */
+.verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 22px; align-items: center; background: var(--sheet); border: 1.5px solid var(--ink); border-radius: var(--r); padding: 16px 20px; }
+.score { font-family: var(--f-display); font-weight: 900; font-size: 92px; line-height: .82; font-variant-numeric: tabular-nums; }
+.score small { font-size: 26px; color: var(--muted); font-weight: 700; }
+.stamp { display: inline-block; font-family: var(--f-display); font-weight: 900; font-size: 34px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 14px; border: 3px solid currentColor; border-radius: 4px; transform: rotate(-4deg); }
+.stamp.pass { color: var(--pass); } .stamp.weak { color: var(--weak); } .stamp.fail { color: var(--fail); }
+.stamp.thud { animation: thud .38s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes thud { from { transform: rotate(-12deg) scale(1.9); opacity: 0; } to { transform: rotate(-4deg) scale(1); opacity: 1; } }
+.verdict-line { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
+.strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+.strip a { display: block; height: 26px; border-radius: 3px; font-family: var(--f-mono); font-size: 10px; color: var(--paper); text-align: center; line-height: 26px; text-decoration: none; font-weight: 600; overflow: hidden; }
+.strip a.pass { background: var(--pass); } .strip a.weak { background: var(--weak); } .strip a.fail { background: var(--fail); } .strip a.skip { background: var(--skip); }
+
+/* ---------- Trials ---------- */
+.trial-list { display: grid; gap: 10px; margin-top: 16px; }
+details.trial { background: var(--sheet); border: 1px solid var(--line); border-radius: var(--r); border-left: 5px solid var(--skip); }
+details.trial.pass { border-left-color: var(--pass); } details.trial.weak { border-left-color: var(--weak); } details.trial.fail { border-left-color: var(--fail); }
+details.trial.reveal { animation: rise .35s ease-out both; }
+@keyframes rise { from { transform: translateY(6px); opacity: .25; } to { transform: none; opacity: 1; } }
+details.trial > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 14px; }
+details.trial > summary::-webkit-details-marker { display: none; }
+.t-no { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.t-name { font-family: var(--f-display); font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .04em; line-height: 1; }
+.t-q { display: block; font-family: var(--f-body); font-size: 12.5px; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; margin-top: 3px; }
+.t-bar { width: 84px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.t-bar i { display: block; height: 100%; background: currentColor; }
+.t-score { font-family: var(--f-mono); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 4.6em; text-align: right; }
+.pass .t-score, .pass .t-bar { color: var(--pass); } .weak .t-score, .weak .t-bar { color: var(--weak); } .fail .t-score, .fail .t-bar { color: var(--fail); } .skip .t-score, .skip .t-bar { color: var(--skip); }
+.t-body { padding: 0 14px 14px calc(2.4em + 26px); display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 480px) { .t-body { padding-left: 14px; } .t-bar { display: none; } details.trial > summary { grid-template-columns: 2em minmax(0,1fr) auto; } }
+.found { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { font-family: var(--f-mono); font-size: 11.5px; padding: 2px 7px; border-radius: 3px; background: var(--pass-bg); color: var(--pass); }
+.tag.missing { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
+ul.issues { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+ul.issues li { display: grid; grid-template-columns: 1.3em minmax(0,1fr); gap: 4px; }
+ul.issues li::before { font-family: var(--f-mono); font-weight: 700; }
+ul.issues li.bad::before { content: "✕"; color: var(--fail); }
+ul.issues li.warn::before { content: "!"; color: var(--weak); text-align: center; }
+ul.issues li.tip::before { content: "→"; color: var(--accent); }
+ul.issues li.good::before { content: "✓"; color: var(--pass); }
+
+.fortify { border-top: 1px dashed var(--line); padding-top: 10px; display: grid; gap: 12px; }
+.fortify h4 { margin: 0; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.q { display: grid; gap: 6px; }
+.q > span { font-size: 13px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--field); border-radius: 999px; padding: 4px 11px; font-size: 13px; cursor: pointer; }
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* ---------- Forge ---------- */
+.forge-head { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: var(--r); overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; cursor: pointer; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.delta { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.delta b { font-size: 18px; }
+#forged { min-height: 220px; font-size: 14px; font-family: var(--f-mono); line-height: 1.6; }
+#negative { min-height: 64px; font-size: 13px; font-family: var(--f-mono); }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--muted); font-family: var(--f-mono); }
+.fit-ok { color: var(--pass); } .fit-warn { color: var(--weak); } .fit-bad { color: var(--fail); }
+.sub-h { font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; }
+.toast { font-family: var(--f-mono); font-size: 12px; color: var(--pass); min-height: 1em; }
+
+/* ---------- Judge ---------- */
+.judge-card { background: var(--sheet); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 10px; }
+.judge-out { display: grid; gap: 10px; font-size: 14px; }
+.judge-out .jscore { font-family: var(--f-display); font-weight: 900; font-size: 40px; line-height: 1; }
+.judge-out ol { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.judge-out pre { white-space: pre-wrap; word-break: break-word; background: var(--field); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; font-family: var(--f-mono); font-size: 13px; margin: 0; }
+.thinking { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+
+/* ---------- Log ---------- */
+.takes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.takes li { display: grid; grid-template-columns: 4.2em 3em minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.takes .n { font-family: var(--f-mono); color: var(--muted); }
+.takes .s { font-family: var(--f-mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+.takes .p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty { color: var(--muted); font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) { .stamp.thud, details.trial.reveal { animation: none; } }
+</style>
+
+<div class="clapper" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">Prompt <span>Gauntlet</span></div>
+      <p class="tagline">Every video prompt goes through ten trials before it reaches the render queue. Find what's missing, answer the questions, and forge the final prompt.</p>
+    </div>
+    <div class="slate" aria-label="Slate">
+      <div><b>TAKE</b><output id="sl-take">01</output></div>
+      <div><b>MODEL</b><output id="sl-model">Veo 3</output></div>
+      <div><b>DUR</b><output id="sl-dur">8s</output></div>
+      <div><b>SCORE</b><output id="sl-score">--</output></div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- ================= CONTENDER ================= -->
+    <section class="block" id="contender">
+      <div class="eyebrow"><span>The contender</span><span id="example-flag" class="example-flag">Example prompt loaded</span></div>
+      <h2>Your raw prompt</h2>
+      <textarea id="prompt" spellcheck="true" aria-label="Raw video prompt"></textarea>
+      <div class="controls">
+        <label class="field">Target model<select id="model"></select></label>
+        <label class="field">Duration<select id="dur"></select></label>
+        <label class="field">Aspect ratio<select id="aspect">
+          <option value="16:9">16:9 landscape</option>
+          <option value="9:16">9:16 vertical</option>
+          <option value="1:1">1:1 square</option>
+          <option value="4:5">4:5 portrait</option>
+          <option value="2.39:1">2.39:1 scope</option>
+        </select></label>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="i2v"> I have a start frame (image-to-video)</label>
+        <label><input type="checkbox" id="audio"> Generate audio</label>
+      </div>
+      <p class="model-note" id="model-note"></p>
+      <div class="actions">
+        <button class="btn primary" id="run">Run the gauntlet</button>
+        <button class="btn" id="load-example">Load example</button>
+        <button class="btn" id="clear">Clear</button>
+      </div>
+    </section>
+
+    <!-- ================= TRIALS ================= -->
+    <section class="block" id="trials" aria-live="polite">
+      <div class="eyebrow"><span>The verdict</span><span id="wordcount">0 words</span></div>
+      <div class="verdict">
+        <div class="score"><span id="score">--</span><small>/100</small></div>
+        <div><span class="stamp" id="stamp">Pending</span></div>
+        <p class="verdict-line" id="verdict-line"></p>
+        <nav class="strip" id="strip" aria-label="Trial results"></nav>
+      </div>
+      <div class="trial-list" id="trial-list"></div>
+    </section>
+
+    <!-- ================= FORGE ================= -->
+    <section class="block" id="forge">
+      <div class="eyebrow"><span>The forge</span><span class="delta" id="delta"></span></div>
+      <h2>Forged prompt</h2>
+      <p class="hint">Built from your raw prompt plus every answer you give in the trials. Edit freely before copying.</p>
+      <div class="forge-head">
+        <div class="seg" role="group" aria-label="Output format">
+          <button id="fmt-prose" aria-pressed="true">Paragraph</button>
+          <button id="fmt-sheet" aria-pressed="false">Shot sheet</button>
+        </div>
+        <div class="toggles" style="margin-top:0">
+          <label><input type="checkbox" id="strip-hype" checked> Strip filler words</label>
+          <label><input type="checkbox" id="move-neg" checked> Move "no X" to avoid list</label>
+        </div>
+      </div>
+      <textarea id="forged" aria-label="Forged prompt"></textarea>
+      <div class="meta-row"><span id="forged-count"></span><span class="toast" id="toast-forged" role="status"></span></div>
+      <div class="actions">
+        <button class="btn accent" id="copy-forged">Copy prompt</button>
+        <button class="btn" id="rerun">Send the forged prompt through again</button>
+      </div>
+      <div class="sub-h">Avoid list (negative prompt)</div>
+      <textarea id="negative" aria-label="Negative prompt"></textarea>
+      <div class="meta-row"><span id="neg-note"></span><span class="toast" id="toast-neg" role="status"></span></div>
+      <div class="actions"><button class="btn small" id="copy-neg">Copy avoid list</button></div>
+    </section>
+
+    <!-- ================= JUDGE ================= -->
+    <section class="block" id="judge" hidden>
+      <div class="eyebrow"><span>The judge</span><span>Uses your Claude account</span></div>
+      <h2>Final judgment</h2>
+      <div class="judge-card">
+        <p class="hint" style="margin:0">The ten trials are fast rule checks. The judge reads the forged prompt the way an experienced AI video director would: intent, choreography, what the model will misread, and what only you can answer. It returns a scored critique and a rewrite.</p>
+        <div class="actions" style="margin-top:0">
+          <button class="btn accent" id="summon">Summon the judge</button>
+          <button class="btn small" id="stop-judge" hidden>Stop</button>
+        </div>
+        <div class="judge-out" id="judge-out"></div>
+      </div>
+    </section>
+
+    <!-- ================= LOG ================= -->
+    <section class="block" id="log">
+      <div class="eyebrow"><span>Take log</span><span>Saved in this browser</span></div>
+      <ul class="takes" id="takes"></ul>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* =====================================================================
+   MODEL PROFILES — rules of thumb, not official specs.
+   ===================================================================== */
+const MODELS = {
+  veo3:    { name: "Google Veo 3",       short: "Veo 3",    audio: true,  neg: true,  i2v: false, durs: [4, 6, 8],      words: [50, 200], multishot: false,
+             note: "Generates synchronized sound. Put dialogue in quotes and say who speaks it. A negative prompt is available through the API and some front ends." },
+  sora2:   { name: "OpenAI Sora 2",      short: "Sora 2",   audio: true,  neg: false, i2v: false, durs: [4, 8, 12],     words: [50, 220], multishot: true,
+             note: "Generates sound. Works well with a clear shot description followed by action beats. No separate negative field, so phrase constraints positively." },
+  kling:   { name: "Kling",              short: "Kling",    audio: false, neg: true,  i2v: false, durs: [5, 10],        words: [30, 150], multishot: false,
+             note: "Has a negative prompt field. Name the camera movement explicitly. Newer versions can add sound; switch audio on if yours does." },
+  runway:  { name: "Runway Gen-4",       short: "Runway",   audio: false, neg: false, i2v: true,  durs: [5, 10],        words: [15, 100], multishot: false,
+             note: "Built around a start image. Keep prompts short and about motion: describe what moves and how the camera moves, not what the image already shows." },
+  hailuo:  { name: "MiniMax Hailuo",     short: "Hailuo",   audio: false, neg: false, i2v: false, durs: [6, 10],        words: [30, 150], multishot: false,
+             note: "Director models accept bracketed camera commands such as [Push in] or [Pan left]. The forge adds them for the movement you pick." },
+  seedance:{ name: "ByteDance Seedance", short: "Seedance", audio: false, neg: false, i2v: false, durs: [5, 10],        words: [30, 160], multishot: true,
+             note: "Handles multi-shot descriptions. Keep each shot to one clear action." },
+  wan:     { name: "Wan",                short: "Wan",      audio: false, neg: true,  i2v: false, durs: [5, 8],         words: [40, 160], multishot: false,
+             note: "Open model with a negative prompt. Long descriptive prompts work well." },
+  generic: { name: "Generic / other",    short: "Generic",  audio: false, neg: true,  i2v: false, durs: [4, 5, 6, 8, 10, 12, 15], words: [30, 170], multishot: false,
+             note: "Model-agnostic rules of thumb. Check your model's current docs for length limits and negative prompt support." },
+};
+
+const EXAMPLE = "A woman walks through a beautiful city at night, epic and cinematic, she feels lonely, no cars, 8k, masterpiece, trending on artstation";
+
+/* =====================================================================
+   LEXICON
+   ===================================================================== */
+const LX = {
+  people: ["man","woman","men","women","boy","girl","child","children","kid","kids","baby","person","people","teenager","teen","couple","family","father","mother","grandmother","grandfather","old man","old woman","soldier","chef","dancer","astronaut","knight","samurai","ninja","detective","cowboy","pilot","doctor","nurse","student","worker","musician","guitarist","singer","skater","surfer","runner","athlete","boxer","monk","priest","witch","wizard","king","queen","princess","warrior","character","figure","stranger","crowd","businessman","businesswoman","office worker","farmer","fisherman","geisha","salaryman","idol"],
+  creatures: ["dog","puppy","cat","kitten","horse","bird","birds","crow","owl","eagle","fish","koi","whale","shark","dolphin","deer","fox","wolf","bear","tiger","lion","elephant","monkey","rabbit","dragon","robot","android","cyborg","alien","creature","monster","kaiju","butterfly","bee","spider","snake","frog","octopus","jellyfish","toy","figure","doll","mecha"],
+  objects: ["car","truck","motorcycle","bicycle","bike","train","bus","taxi","boat","ship","plane","airplane","helicopter","spaceship","rocket","drone","bottle","cup","mug","glass","phone","sneaker","shoe","watch","perfume","product","package","box","lamp","candle","book","guitar","piano","sword","umbrella","balloon","flower","tree","leaf","feather","coin","ring","necklace","camera","building","tower","lighthouse","vending machine"],
+  colors: ["red","crimson","scarlet","blue","navy","cobalt","green","emerald","olive","yellow","mustard","gold","golden","orange","amber","purple","violet","lavender","pink","magenta","white","ivory","black","charcoal","grey","gray","silver","brown","tan","beige","teal","turquoise","cyan","maroon","burgundy","pastel"],
+  materials: ["leather","denim","wool","knit","silk","satin","velvet","linen","cotton","corduroy","nylon","metal","metallic","steel","chrome","wooden","wood","glass","ceramic","porcelain","plastic","vinyl","rubber","stone","marble","concrete","brass","copper","bronze","paper","cardboard","fur","furry","feathered","fluffy","translucent","iridescent","matte","glossy"],
+  clothing: ["jacket","coat","raincoat","trench coat","parka","hoodie","sweater","cardigan","dress","gown","skirt","shirt","t-shirt","blouse","suit","tie","jeans","trousers","pants","shorts","kimono","yukata","uniform","apron","hat","cap","beanie","helmet","scarf","gloves","boots","sneakers","heels","sandals","glasses","sunglasses","goggles","mask","backpack","armor","cape","cloak","robe","overalls","tracksuit","school uniform","jersey"],
+  hair: ["hair","haired","beard","bearded","mustache","moustache","stubble","bald","ponytail","braid","braids","bun","curly","wavy","straight hair","dreadlocks","afro","bob","fringe","bangs","freckles","freckled","tattoo","tattoos","scar","wrinkles","wrinkled","makeup","lipstick","eyes","skin"],
+  build: ["young","old","elderly","middle-aged","aged","tall","short","small","tiny","giant","huge","slender","slim","thin","stocky","muscular","athletic","heavyset","petite","lanky","weathered","worn","scuffed","rusty","rusted","battered","dusty","muddy","wet","soaked","pristine","shiny","faded","tattered","torn"],
+  places: ["street","alley","alleyway","road","highway","crosswalk","intersection","sidewalk","city","town","village","downtown","skyline","rooftop","roof","subway","metro","train station","platform","station","airport","harbor","port","pier","dock","bridge","tunnel","forest","woods","jungle","rainforest","beach","shore","coast","ocean","sea","lake","river","waterfall","pond","desert","dunes","canyon","mountain","mountains","valley","hill","hills","field","meadow","farm","garden","park","cave","glacier","tundra","island","space","orbit","planet","moon surface","spaceship interior","kitchen","bedroom","living room","bathroom","office","studio","classroom","library","hospital","laboratory","lab","warehouse","factory","garage","workshop","diner","cafe","café","restaurant","bar","izakaya","nightclub","club","arcade","shop","store","market","mall","supermarket","convenience store","konbini","temple","shrine","church","cathedral","castle","palace","stadium","arena","gym","stage","theater","museum","gallery","apartment","hallway","corridor","staircase","elevator","parking lot","car interior","tabletop","table","desk","countertop","void","backdrop","cyclorama","tokyo","shibuya","shinjuku","akihabara","kyoto","osaka","new york","london","paris"],
+  timeOfDay: ["dawn","sunrise","morning","early morning","midday","noon","afternoon","golden hour","sunset","dusk","twilight","blue hour","evening","night","nighttime","midnight","late night","daytime","daylight"],
+  atmos: ["rain","raining","rainy","drizzle","storm","stormy","thunderstorm","lightning","snow","snowing","snowfall","blizzard","fog","foggy","mist","misty","haze","hazy","smoke","smoky","steam","dust","dusty","wind","windy","breeze","overcast","cloudy","clear sky","sunny","humid","wet pavement","puddles","sleet"],
+  era: ["spring","summer","autumn","fall season","winter","1920s","1950s","1960s","1970s","1980s","1990s","victorian","medieval","edo period","futuristic","retro","vintage","cyberpunk","post-apocalyptic","present day","contemporary"],
+  shot: ["extreme wide shot","extreme wide","wide shot","establishing shot","full shot","long shot","medium wide","medium shot","mid shot","medium close-up","close-up","close up","closeup","extreme close-up","extreme close up","insert shot","two-shot","over-the-shoulder","over the shoulder","cowboy shot","macro shot"],
+  angle: ["low angle","low-angle","high angle","high-angle","eye level","eye-level","overhead","top-down","top down","bird's-eye","birds-eye","bird's eye","worm's-eye","dutch angle","canted","pov","point of view","first-person","aerial","ground level"],
+  move: ["static shot","static camera","locked-off","locked off","tripod","push-in","push in","pushes in","pull-out","pull out","pulls back","pull back","dolly","dollies","tracking shot","tracking","tracks","truck left","truck right","pan","pans","panning","tilt","tilts","tilting","orbit","orbits","orbiting","arc shot","crane","crane shot","jib","handheld","hand-held","steadicam","gimbal","fpv","drone shot","drone","zoom","zooms","dolly zoom","whip pan","rack focus","follows","following","follow shot","camera moves","camera glides","camera rises","camera descends","slow motion camera"],
+  lens: ["anamorphic","wide-angle","wide angle lens","telephoto","fisheye","fish-eye","macro lens","shallow depth of field","depth of field","bokeh","deep focus","tilt-shift","lens flare","prime lens","f/1.4","f/1.8","f/2","f/2.8","f/4","f/8"],
+  light: ["golden hour light","sunlight","sunlit","daylight","moonlight","moonlit","neon","neon signs","neon light","streetlight","street lights","streetlamp","lantern","lanterns","candle","candlelight","candlelit","firelight","torchlight","fluorescent","tungsten","sodium vapor","led","practical","practicals","softbox","ring light","key light","fill light","rim light","rimlight","backlight","backlit","back-lit","side light","sidelight","silhouette","silhouetted","hard light","soft light","diffused","diffuse","harsh shadows","hard shadows","long shadows","dappled","volumetric","god rays","light rays","light beams","shafts of light","chiaroscuro","low key","low-key","high key","high-key","high contrast","low contrast","glow","glowing","overcast light","window light","headlights","spotlight","stage lights","bioluminescent","warm light","cool light","color temperature","3200k","5600k","teal and orange","flicker","flickering"],
+  style: ["photoreal","photorealistic","realistic","live action","live-action","documentary","handheld documentary","found footage","35mm","35mm film","16mm","super 8","8mm","70mm","imax","film grain","grainy","kodak","portra","ektachrome","cinestill","fujifilm","vhs","camcorder","mini dv","cctv","security camera","bodycam","webcam","anime","cel-shaded","cel shaded","studio ghibli style","cartoon","animated","3d animation","3d render","cgi","pixar-style","claymation","stop-motion","stop motion","puppet","watercolor","oil painting","ink wash","sumi-e","pixel art","low poly","noir","film noir","neo-noir","western","sci-fi","fantasy","horror","thriller","music video","commercial","product commercial","advert","nature documentary","wildlife documentary","news footage","sports broadcast","desaturated","saturated","muted colors","muted palette","pastel palette","monochrome","black and white","black-and-white","sepia","bleach bypass","color grade","color graded","crushed blacks","high contrast grade","teal and orange","wes anderson","symmetrical","dreamlike","surreal","minimalist","brutalist","vaporwave","y2k","lo-fi","retro"],
+  pace: ["slowly","slow","gently","gradually","steadily","calmly","leisurely","lazily","quickly","rapidly","briskly","fast","swiftly","suddenly","abruptly","smoothly","in slow motion","slow motion","slow-motion","in real time","real-time","time-lapse","timelapse","hyperlapse","frantically","hesitantly","deliberately"],
+  sequence: ["then","as","while","before","after","finally","begins to","starts to","until","meanwhile","at the end","in the end","moments later"],
+  sfx: ["sound of","sounds of","sfx","footsteps","clatter","clink","crackle","crackling","hum","humming","buzz","buzzing","roar","roaring","rumble","thunder","splash","whoosh","creak","creaking","click","clicking","beep","ticking","sizzle","sizzling","engine","horn","sirens","siren","birdsong","chirping","barking","applause","laughter","gunshot","explosion sound","door slams","rustling","wind howling","rain pattering","pattering","dripping"],
+  amb: ["ambient","ambience","ambiance","background noise","room tone","atmosphere sound","crowd murmur","murmur","distant traffic","city noise","city hum","nature sounds","silence","quiet"],
+  music: ["music","score","soundtrack","song","melody","piano","strings","orchestral","synth","synthwave","beat","drums","bass","lo-fi beat","jazz","ambient music","no music","guitar riff","choir","hum of a song"],
+  speech: ["says","said","asks","asked","whispers","whispered","shouts","shouted","yells","replies","murmurs","sings","narrates","narrator","voiceover","voice-over","v.o.","dialogue","speaks","speaking","says softly","tells"],
+  hype: ["beautiful","beautifully","stunning","amazing","epic","awesome","cool","nice","gorgeous","incredible","breathtaking","mind-blowing","masterpiece","best quality","high quality","top quality","ultra realistic","ultra-realistic","hyperrealistic","hyper-realistic","hyper realistic","ultra detailed","ultra-detailed","highly detailed","hyper detailed","hyper-detailed","insanely detailed","intricate details","4k","8k","16k","uhd","ultra hd","full hd","trending on artstation","artstation","award-winning","award winning","perfect","flawless","unreal engine","octane render","very","really","super cool"],
+  emotion: ["feels","feeling","sense of","vibe","vibes","mood of","nostalgic","nostalgia","lonely","loneliness","melancholic","melancholy","hopeful","mysterious","dreamy","emotional","sad","happy","peaceful","eerie","ominous","tense","joyful","bittersweet","serene","longing"],
+  vagueCinematic: ["cinematic","film look","movie-like","filmic"],
+  cuts: ["cut to","cuts to","smash cut","jump cut","scene changes","transition to","next shot","shot 2","shot two","then we see","montage"],
+  dayWords: ["midday","noon","sunny","daylight","daytime","morning","afternoon","bright sun","blue sky"],
+  nightWords: ["night","nighttime","midnight","moonlight","moonlit","starry","starlit","late night"],
+  staticWords: ["static shot","static camera","locked-off","locked off","tripod","still camera","camera does not move","fixed camera"],
+  movingWords: ["dolly","tracking","pan","pans","orbit","push-in","push in","pull-out","pull back","crane","handheld","fpv","drone shot","whip pan","zoom","follows"],
+  realWords: ["photoreal","photorealistic","live action","live-action","documentary","realistic"],
+  toonWords: ["anime","cartoon","claymation","stop-motion","cel-shaded","cel shaded","pixel art","watercolor","3d animation","pixar-style"],
+  shakeWords: ["handheld","hand-held","shaky","shaky cam"],
+  smoothWords: ["smooth","steady","steadicam","gimbal","stable","perfectly still"],
+};
+
+const HAZARDS = [
+  { id: "hands", re: /\b(typ(ing|es)|playing (the )?(piano|guitar|violin|cello|drums)|knit(ting)?|sew(ing)?|shuffl(e|es|ing) cards|tying|tie (his|her|their) |fingers?|counting money|sign language|origami|chopsticks)\b/i,
+    label: "Fine hand work", tip: "Finger-level manipulation is where hands melt. Keep hands partly out of frame, use a wider shot, or simplify the gesture." },
+  { id: "text", re: /\b(sign (that )?(says|reads)|text (that|reading|saying)|the words?|logo|caption|title card|subtitles?|lettering|written on|letters? on|neon sign (that )?(says|reads)|headline|label (that|reading))\b|["“][^"”]{1,40}["”]\s+(on|written|painted|in neon)/i,
+    label: "Readable text", tip: "Most video models garble text. Add titles and signage in the edit, or keep any sign blurred and in the background." },
+  { id: "crowd", re: /\b(crowds?|hundreds|thousands|an army|audience|stadium full|packed|swarm|horde|throng)\b/i,
+    label: "Crowds", tip: "Crowd faces and limbs degrade fast. Keep the crowd soft-focus in the background and give the foreground one subject." },
+  { id: "contact", re: /\b(fight(ing|s)?|punch(es|ing)?|kick(s|ing)?|wrestl(e|ing)|kiss(es|ing)?|hug(s|ging)?|embrac(e|es|ing)|handshake|shak(e|ing) hands|dancing together|slow dance|tackl(e|es|ing)|sword ?fight)\b/i,
+    label: "Bodies in contact", tip: "Two bodies touching often merge. Use one clear interaction at moderate speed, and describe who is on which side of the frame." },
+  { id: "acrobatics", re: /\b(backflips?|front ?flips?|cartwheels?|gymnastics|parkour|breakdanc(e|ing)|juggl(e|es|ing)|kickflips?|skateboard tricks?|somersaults?|martial arts|kung fu|cartwheel)\b/i,
+    label: "Complex body motion", tip: "Acrobatics break anatomy. Slow it down, shorten it to one move, or frame it so the motion reads in silhouette." },
+  { id: "fluid", re: /\b(pour(s|ing)?|splash(es|ing)?|spill(s|ing)?|liquid|shatter(s|ing)?|explod(e|es|ing)|explosion|smash(es|ing)?|crumbl(e|es|ing)|melt(s|ing)?|dissolv(e|es|ing))\b/i,
+    label: "Physics events", tip: "Liquids, breakage and explosions are hit or miss. Describe the cause and the result (\"coffee fills the cup to the brim\") and give it a slow pace." },
+  { id: "count", re: /\b(three|four|five|six|seven|eight|nine|ten|eleven|twelve|[3-9]|\d{2,})\s+(people|men|women|kids|children|birds|cats|dogs|cars|dancers|soldiers|candles|balloons|fish|horses|robots|figures|objects|cups|bottles)\b/i,
+    label: "Exact counts", tip: "Models don't count reliably past two or three. Say \"a small group\" unless the exact number is the point, and verify in review." },
+  { id: "mirror", re: /\b(mirrors?|reflections?|reflected|reflecting)\b/i,
+    label: "Mirrors and reflections", tip: "Reflections often disagree with the subject. Keep them incidental or angle the mirror away from camera." },
+  { id: "morph", re: /\b(transforms? into|morphs? into|turns into|becomes a|shape-?shift(s|ing)?|metamorphos[ie]s)\b/i,
+    label: "Transformations", tip: "Spell out the start state and the end state, and give the change most of the duration. Consider start and end frames if your model supports them." },
+  { id: "eat", re: /\b(eat(s|ing)?|bit(e|es|ing)|chew(s|ing)?|drink(s|ing)? from)\b/i,
+    label: "Eating and drinking", tip: "Food passing lips is a known failure. Cut away before contact, or show the moment just after." },
+];
+
+const NEG_DEFAULTS = ["morphing", "warped hands", "extra fingers", "extra limbs", "distorted faces", "flickering", "garbled text", "watermark", "jump cuts", "jittery camera", "blurry footage", "duplicate subjects"];
+
+/* =====================================================================
+   FORTIFICATION QUESTIONS (per trial)
+   ===================================================================== */
+const TRIALS = [
+  { key: "subject", name: "Subject",  q: "Who or what is the eye drawn to?" },
+  { key: "action",  name: "Action",   q: "What moves, and how?" },
+  { key: "setting", name: "Setting",  q: "Where and when?" },
+  { key: "camera",  name: "Camera",   q: "Shot size, angle, movement, lens" },
+  { key: "light",   name: "Light",    q: "Source, quality, color" },
+  { key: "style",   name: "Style",    q: "Medium, stock, grade" },
+  { key: "sound",   name: "Sound",    q: "Dialogue, effects, ambience, music" },
+  { key: "timing",  name: "Timing",   q: "Does it fit the clip length?" },
+  { key: "clarity", name: "Clarity",  q: "Filler, negations, contradictions" },
+  { key: "hazards", name: "Hazards",  q: "Known failure zones" },
+];
+
+const FORT = {
+  subject: [
+    { k: "subject_desc", type: "text", label: "Describe the subject in concrete, visible terms", ph: "a woman in her 60s, cropped silver hair, oversized mustard raincoat, red rubber boots" },
+    { k: "subject_diff", type: "text", label: "Several characters: how do we tell them apart?", ph: "the tall man on the left wears a grey suit; the boy on the right wears a yellow hoodie", when: r => r.multi },
+  ],
+  action: [
+    { k: "action", type: "text", label: "What happens, start to finish? Aim for one clear action every few seconds.", ph: "she stops at the crosswalk, tilts her head up at the rain, then opens a clear umbrella" },
+    { k: "pace", type: "chips", single: true, label: "Pace", opts: ["slow and deliberate", "steady", "brisk", "in slow motion", "in real time"] },
+  ],
+  setting: [
+    { k: "place", type: "text", label: "Where are we, specifically?", ph: "a narrow Shinjuku alley lined with paper lanterns and vending machines" },
+    { k: "time", type: "chips", single: true, label: "Time of day", opts: ["dawn", "morning", "midday", "golden hour", "blue hour", "night"] },
+    { k: "atmos", type: "chips", label: "Atmosphere", opts: ["clear air", "overcast", "light rain", "wet pavement", "fog", "snowfall", "dust in the air", "steam rising"] },
+  ],
+  camera: [
+    { k: "shot", type: "chips", single: true, label: "Shot size", opts: ["extreme wide shot", "wide shot", "medium shot", "medium close-up", "close-up", "extreme close-up"] },
+    { k: "angle", type: "chips", single: true, label: "Angle", opts: ["eye level", "low angle", "high angle", "overhead top-down", "dutch angle", "POV"] },
+    { k: "move", type: "chips", single: true, label: "Movement", opts: ["static locked-off", "slow push-in", "slow pull-out", "tracking alongside", "follows from behind", "orbit", "crane up", "handheld", "FPV drone flythrough", "pan left", "pan right", "tilt up"] },
+    { k: "lens", type: "chips", label: "Lens and focus", opts: ["24mm wide", "35mm", "50mm", "85mm", "macro", "anamorphic", "shallow depth of field", "deep focus"] },
+  ],
+  light: [
+    { k: "lightsrc", type: "chips", label: "Source", opts: ["natural sunlight", "low golden sun", "overcast daylight", "neon signs", "practical lamps", "candlelight", "moonlight", "studio softbox", "car headlights", "firelight"] },
+    { k: "lightq", type: "chips", label: "Quality", opts: ["soft and diffused", "hard shadows", "backlit", "rim light", "silhouette", "volumetric beams", "high contrast", "low key"] },
+    { k: "lightcol", type: "chips", single: true, label: "Color", opts: ["warm tungsten", "cool blue", "mixed warm and cool", "teal and orange", "neutral white", "monochrome"] },
+  ],
+  style: [
+    { k: "medium", type: "chips", single: true, label: "Medium", opts: ["photoreal live action", "35mm film", "16mm documentary", "Super 8 home movie", "VHS camcorder", "3D animation", "stop-motion claymation", "anime cel animation", "watercolor animation"] },
+    { k: "grade", type: "chips", label: "Look", opts: ["natural color", "desaturated", "rich saturation", "bleach bypass", "pastel palette", "fine film grain", "crushed blacks", "soft halation"] },
+    { k: "ref", type: "text", label: "Genre, era or reference", ph: "1990s Japanese TV commercial, quiet slice-of-life drama" },
+  ],
+  sound: [
+    { k: "dialogue", type: "text", label: "Dialogue: who says what? Use quotes.", ph: "the old woman says quietly, \"It always rains on Tuesdays.\"" },
+    { k: "sfx", type: "text", label: "Sound effects tied to the action", ph: "rain pattering on the umbrella, a distant train crossing bell" },
+    { k: "amb", type: "chips", label: "Ambience", opts: ["city traffic hum", "wind", "rain on pavement", "crowd murmur", "forest birds", "quiet room tone", "ocean waves", "night insects"] },
+    { k: "music", type: "chips", single: true, label: "Music", opts: ["no music", "soft solo piano", "warm synth pad", "orchestral swell", "lo-fi beat", "music from a radio in the scene"] },
+  ],
+  timing: [
+    { k: "struct", type: "chips", single: true, label: "Structure", opts: ["one continuous shot", "two beats", "three beats"] },
+    { k: "beats", type: "text", label: "Beat timing (optional)", ph: "0-3s: she waits at the crossing. 3-6s: she looks up. 6-8s: the umbrella opens." },
+  ],
+  hazards: [
+    { k: "neg", type: "chips", label: "Add to the avoid list", opts: NEG_DEFAULTS },
+    { k: "neg_extra", type: "text", label: "Anything else to avoid?", ph: "logos, text overlays, lens dirt" },
+  ],
+};
+
+const HAILUO_CAM = { "static locked-off": "[Static shot]", "slow push-in": "[Push in]", "slow pull-out": "[Pull out]", "tracking alongside": "[Tracking shot]", "follows from behind": "[Tracking shot]", "crane up": "[Pedestal up]", "handheld": "[Shake]", "pan left": "[Pan left]", "pan right": "[Pan right]", "tilt up": "[Tilt up]", "orbit": "[Truck left]" };
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const state = { fort: {}, fmt: "prose", lastRaw: null, isExample: true };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+};
+
+/* =====================================================================
+   TEXT HELPERS
+   ===================================================================== */
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const reCache = new Map();
+function termRe(term) {
+  let re = reCache.get(term);
+  if (!re) { re = new RegExp("(^|[^a-z0-9])" + reEsc(term) + "(?=$|[^a-z0-9])", "i"); reCache.set(term, re); }
+  return re;
+}
+function find(text, list) {
+  const hits = list.filter(t => termRe(t).test(text));
+  return hits.filter(h => !hits.some(o => o !== h && o.includes(h)));
+}
+const has = (text, list) => list.some(t => termRe(t).test(text));
+const words = t => (t.trim().match(/[\p{L}\p{N}'’-]+/gu) || []);
+const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const sentence = s => { s = (s || "").trim(); if (!s) return ""; s = cap(s); return /[.!?"”)\]]$/.test(s) ? s : s + "."; };
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const listJoin = arr => arr.filter(Boolean).join(", ");
+
+/* Motion verbs ---------------------------------------------------------- */
+const VERB_STEMS = "walk run sprint jog stroll wander march turn look glance stare gaze smile laugh cry weep jump leap hop fall trip dance spin twirl fly soar glide drift float hover swim dive surf pour drink sip eat bite chew open close reach grab hold lift raise lower throw toss catch push pull drag climb sit stand rise kneel crouch crawl ride drive race speed crash explode burst shatter break melt freeze grow bloom wilt sway ripple flow splash wave nod shake tremble shiver whisper shout yell scream sing speak talk say type write draw paint cook chop stir fry knead burn flicker blink breathe rush chase flee fight punch kick swing hug kiss embrace wake emerge appear vanish fade approach enter exit leave arrive descend ascend rotate roll slide skid land launch collapse crumble scatter fold unfold unfurl flap flutter drip spill fill swirl twist bounce sink lean reveal step pace hurry wipe brush tap knock point wink frown sigh yawn stretch shrug bow salute play pick drop toss blow pop shine sparkle rain snow".split(" ");
+const NOUNY = new Set("light rain snow wave stream glow pulse land close open rise sink fold step race drift spill stand hold fight kiss hug ride drive sip bite reach break float splash crash walk look smile laugh dance swing play pick drop point brush tap knock shine sparkle bow speed type pace fill cook paint draw".split(" "));
+const PLURAL_NOUNS = new Set("light rain snow wave stream glow pulse land step race drift spill rise swing play point shine sparkle bow speed type pace fill paint draw break stand fold ride drive".split(" "));
+const IRREG = { run: ["ran"], fall: ["fell", "fallen"], fly: ["flew", "flies"], swim: ["swam"], drink: ["drank"], eat: ["ate", "eaten"], rise: ["rose", "risen"], throw: ["threw", "thrown"], catch: ["caught"], hold: ["held"], sit: ["sat"], stand: ["stood"], ride: ["rode"], drive: ["drove"], freeze: ["froze", "frozen"], grow: ["grew", "grown"], shake: ["shook"], sing: ["sang"], speak: ["spoke"], say: ["says", "said"], write: ["wrote"], draw: ["drew"], fight: ["fought"], swing: ["swung"], wake: ["woke"], slide: ["slid"], sink: ["sank"], break: ["broke"], blow: ["blew"], seek: ["sought"], leap: ["leapt"], kneel: ["knelt"], spin: ["spun"], burst: ["bursts"], shine: ["shone"], bite: ["bit"] };
+const VERB_RES = VERB_STEMS.map(v => {
+  const f = new Set(["ing", "ed"].map(x => v + x));
+  if (v.endsWith("e")) { f.add(v.slice(0, -1) + "ing"); f.add(v + "d"); f.delete(v + "ed"); }
+  if (/[^aeiou][aeiou][bdgmnprt]$/.test(v) && !/(en|er|ow|ew)$/.test(v)) { const d = v + v.slice(-1); f.add(d + "ing"); f.add(d + "ed"); }
+  if (/[^aeiou]y$/.test(v)) { f.add(v.slice(0, -1) + "ied"); f.add(v.slice(0, -1) + "ies"); }
+  if (!NOUNY.has(v)) f.add(v);
+  if (!PLURAL_NOUNS.has(v)) f.add(/(s|sh|ch|x|z)$/.test(v) ? v + "es" : v + "s"); // "walks", "splashes" read as verbs in prompts
+  (IRREG[v] || []).forEach(x => f.add(x));
+  return { v, re: new RegExp("\\b(" + [...f].map(reEsc).join("|") + ")\\b", "i") };
+});
+function motionVerbs(text) { return VERB_RES.filter(o => o.re.test(text)).map(o => o.v); }
+
+/* Negations ------------------------------------------------------------- */
+const NEG_RE = /(^|[,.;:]\s*|\s)(no|without|never|avoid|don't show|do not show|not)\s+([^,.;:\n]{1,40})/gi;
+function findNegations(text) {
+  const out = [];
+  let m;
+  NEG_RE.lastIndex = 0;
+  while ((m = NEG_RE.exec(text))) {
+    const phrase = m[3].trim().replace(/\s+(and|but|or)$/i, "");
+    if (/^(longer|one|more|matter|less|only|just|sooner|doubt|wonder|less than)\b/i.test(phrase)) continue;
+    if (/^music\b/i.test(phrase)) continue; // "no music" is an audio instruction, not a visual negation
+    out.push({ word: m[2], phrase, full: m[0].replace(/^[,.;:\s]+/, "") });
+  }
+  return out;
+}
+
+/* =====================================================================
+   THE TRIALS
+   ===================================================================== */
+function analyze(raw, ctx) {
+  const t = raw.toLowerCase();
+  const m = MODELS[ctx.model];
+  const wc = words(raw).length;
+  const res = {};
+  const mk = (key, score, found, issues, extra = {}) => {
+    score = clamp(Math.round(score * 10) / 10, 0, 10);
+    const status = extra.skip ? "skip" : score >= 7 ? "pass" : score >= 4 ? "weak" : "fail";
+    res[key] = { key, score, status, found, issues, ...extra };
+  };
+
+  // 1 SUBJECT
+  {
+    const people = find(t, LX.people), creatures = find(t, LX.creatures), objects = find(t, LX.objects);
+    const nouns = [...people, ...creatures, ...objects];
+    const desc = [...find(t, LX.colors), ...find(t, LX.materials), ...find(t, LX.clothing), ...find(t, LX.hair), ...find(t, LX.build)];
+    const agePat = /\b(\d{1,2}[- ]year[- ]old|in (his|her|their) (teens|twenties|thirties|forties|fifties|sixties|seventies|\d0s))\b/.test(t);
+    const pluralPeople = /\b(two|three|several|a group of|a pair of|a couple of|both)\s+\w+/.test(t) || people.some(p => /^(men|women|people|children|kids|couple|family|crowd)$/.test(p));
+    const multi = people.length + creatures.filter(c => !["robot","android","toy","doll","figure"].includes(c)).length >= 2 || pluralPeople;
+    const issues = [];
+    let s = nouns.length ? 3 : 0;
+    s += Math.min(6, desc.length * 1.3) + (agePat ? 1 : 0);
+    if (!nouns.length) issues.push(["bad", "No clear subject. If the place itself is the subject, name the one thing the eye should land on."]);
+    if (nouns.length && desc.length < 3) issues.push(["warn", `Only ${desc.length} visible detail${desc.length === 1 ? "" : "s"} on the subject. Generic nouns get generic people: add age, wardrobe, color, material, texture.`]);
+    if (multi) {
+      const pron = (t.match(/\b(he|she|his|her|him|they|them)\b/g) || []).length;
+      issues.push(["warn", "More than one character. Give each a distinct visible trait and a place in frame (left/right, foreground/background) so the model doesn't blend them."]);
+      if (pron) issues.push(["warn", "Pronouns with several characters are ambiguous to the model. Repeat a short label instead (\"the boy\", \"the tall man\")."]);
+      s -= 1;
+    }
+    if (ctx.i2v) { s = Math.max(s, 7); issues.push(["tip", "Start frame sets the look. Only restate details that must stay consistent as things move."]); }
+    if (s >= 7 && !issues.some(i => i[0] !== "tip")) issues.push(["good", "Subject is concrete and visible."]);
+    mk("subject", s, [...nouns, ...desc].slice(0, 14), issues, { multi, need: ["who/what", "age or build", "wardrobe", "color or material"] });
+  }
+
+  // 2 ACTION
+  {
+    const verbs = motionVerbs(t);
+    const pace = find(t, LX.pace);
+    const seq = find(t, LX.sequence);
+    const capacity = Math.max(1, Math.round(ctx.dur / 3));
+    const issues = [];
+    let s;
+    if (!verbs.length) { s = 1; issues.push(["bad", "No motion verbs. Without them you get a moving photograph: drifting hair, a slow zoom, nothing happening."]); }
+    else {
+      s = 5 + Math.min(2, verbs.length - 1) + (pace.length ? 2 : 0) + (seq.length ? 1 : 0);
+      if (!pace.length) issues.push(["warn", "No pace given. Say how fast things move (slowly, briskly, in slow motion)."]);
+      if (verbs.length > capacity + 2) { s -= 3; issues.push(["bad", `${verbs.length} separate actions in ${ctx.dur}s. Budget about one clear action per 3 seconds (${capacity} here) or the model rushes or drops some.`]); }
+      else if (verbs.length > capacity + 1) { s -= 1; issues.push(["warn", `${verbs.length} actions in ${ctx.dur}s is tight. Consider cutting one.`]); }
+    }
+    if (ctx.i2v && verbs.length) issues.push(["tip", "With a start frame, motion is the whole prompt. Describe what changes, in order."]);
+    if (s >= 7 && !issues.some(i => i[0] === "bad" || i[0] === "warn")) issues.push(["good", "Motion is described with pace."]);
+    mk("action", s, [...verbs, ...pace], issues, { verbs, capacity });
+  }
+
+  // 3 SETTING
+  {
+    const place = find(t, LX.places), tod = find(t, LX.timeOfDay), atm = find(t, LX.atmos), era = find(t, LX.era);
+    const issues = [];
+    let s = (place.length ? 4 : 0) + (tod.length ? 3 : 0) + (atm.length ? 2 : 0) + (era.length ? 1 : 0);
+    if (place.length && place.every(p => ["city", "town", "street", "forest", "room", "beach", "space"].includes(p)) && place.length === 1) { s -= 1; issues.push(["warn", `"${place[0]}" is broad. What kind? Name one or two specifics (signage, materials, scale, region).`]); }
+    if (!place.length) issues.push(["bad", "No location. The model will invent a generic backdrop."]);
+    if (!tod.length) issues.push(["warn", "No time of day. It drives the whole lighting setup."]);
+    if (!atm.length) issues.push(["tip", "Weather or air (rain, haze, dust, steam) adds depth and motion for free."]);
+    if (ctx.i2v) s = Math.max(s, 6);
+    mk("setting", s, [...place, ...tod, ...atm, ...era], issues);
+  }
+
+  // 4 CAMERA
+  {
+    const shot = find(t, LX.shot), angle = find(t, LX.angle), move = find(t, LX.move);
+    const lens = find(t, LX.lens); const mm = t.match(/\b\d{2,3}\s?mm\b/g) || [];
+    const issues = [];
+    let s = (shot.length ? 3 : 0) + (angle.length ? 2 : 0) + (move.length ? 3 : 0) + (lens.length || mm.length ? 2 : 0);
+    if (!shot.length && !angle.length && !move.length) { s = Math.max(s, 1); issues.push(["bad", "No camera direction. The model picks a default, usually a slow generic push toward the middle of frame."]); }
+    else {
+      if (!shot.length) issues.push(["warn", "No shot size (wide, medium, close-up)."]);
+      if (!move.length) issues.push(["warn", "No camera movement. Say \"static\" if you want it locked off."]);
+      if (!angle.length) issues.push(["tip", "Angle (low, high, eye level, overhead) changes how the subject reads."]);
+    }
+    if (!lens.length && !mm.length) issues.push(["tip", "A focal length or depth-of-field note (35mm, 85mm, shallow focus) tightens the look."]);
+    if (ctx.i2v && move.length) s += 1;
+    mk("camera", s, [...shot, ...angle, ...move, ...lens, ...mm], issues);
+  }
+
+  // 5 LIGHT
+  {
+    const l = find(t, LX.light), tod = find(t, LX.timeOfDay);
+    const issues = [];
+    let s = Math.min(10, l.length * 3.2);
+    if (!l.length && tod.length) { s = 3; issues.push(["warn", `Lighting is only implied by "${tod[0]}". Name the source and its quality.`]); }
+    else if (!l.length) issues.push(["bad", "No lighting. Name a source (sun, neon, lamp), a quality (soft, hard, backlit) and a color temperature."]);
+    else if (l.length < 3) issues.push(["tip", "Add a quality or color note: soft vs hard, backlit, warm vs cool."]);
+    if (ctx.i2v) s = Math.max(s, 6);
+    mk("light", s, l, issues);
+  }
+
+  // 6 STYLE
+  {
+    const st = find(t, LX.style), vague = find(t, LX.vagueCinematic);
+    const issues = [];
+    let s = Math.min(10, st.length * 2.6);
+    if (!st.length && vague.length) { s = 3; issues.push(["warn", `"${vague[0]}" on its own says very little. Name the medium, film stock, lens character or grade.`]); }
+    else if (!st.length) issues.push(["bad", "No style. Photoreal? 16mm documentary? Claymation? The model will guess."]);
+    else if (st.length < 3) issues.push(["tip", "Pair the medium with a look: grain, grade, saturation, era."]);
+    if (has(t, LX.realWords) && has(t, LX.toonWords)) { s -= 2; issues.push(["bad", "Mixed signals: photoreal and animated style words in the same prompt."]); }
+    if (ctx.i2v) s = Math.max(s, 6);
+    mk("style", s, [...st, ...vague], issues);
+  }
+
+  // 7 SOUND
+  {
+    if (!ctx.audio) mk("sound", 0, [], [["tip", `Audio is off for this run. Switch on "Generate audio" if ${m.short} makes sound for you.`]], { skip: true });
+    else {
+      const quotes = raw.match(/["“][^"”]{2,}["”]/g) || [];
+      const speech = find(t, LX.speech), sfx = find(t, LX.sfx), amb = find(t, LX.amb), mus = find(t, LX.music);
+      const issues = [];
+      let s = (quotes.length || speech.length ? 3 : 0) + (sfx.length ? 3 : 0) + (amb.length ? 2 : 0) + (mus.length ? 2 : 0);
+      if (!sfx.length) issues.push(["warn", "No sound effects. Tie a sound to each visible action (footsteps, a door, rain on fabric)."]);
+      if (!amb.length) issues.push(["warn", "No ambience. Without it the model may fill the bed with generic music."]);
+      if (!mus.length) issues.push(["tip", "Say whether you want music. \"No music\" is a valid answer."]);
+      if (quotes.length) {
+        const qw = quotes.reduce((n, q) => n + words(q).length, 0);
+        const max = Math.round(ctx.dur * 2.5);
+        if (qw > max) { s -= 2; issues.push(["bad", `${qw} words of dialogue in ${ctx.dur}s. Natural speech is about 2.5 words a second, so keep it under ${max}.`]); }
+        if (!speech.length) issues.push(["warn", "Dialogue without a speaker tag. Write who says it and how (\"the old man whispers\")."]);
+      }
+      mk("sound", s, [...speech, ...sfx, ...amb, ...mus, ...(quotes.length ? [`${quotes.length} line${quotes.length > 1 ? "s" : ""} of dialogue`] : [])], issues);
+    }
+  }
+
+  // 8 TIMING
+  {
+    const [lo, hi] = m.words;
+    const capacity = res.action.capacity, verbs = res.action.verbs.length;
+    const cuts = find(t, LX.cuts);
+    const beats = /\b\d{1,2}\s?(-|–|to)\s?\d{1,2}\s?s(ec(ond)?s?)?\b|\b\d{1,2}s:/.test(t);
+    const seq = find(t, LX.sequence);
+    const issues = [];
+    let s = 0;
+    if (wc < lo) { s += wc < lo / 2 ? 0 : 2; issues.push([wc < lo / 2 ? "bad" : "warn", `${wc} words. ${m.short} prompts tend to work best around ${lo}-${hi}. Short prompts leave the model guessing.`]); }
+    else if (wc > hi) { s += 2; issues.push(["warn", `${wc} words is past the ${lo}-${hi} sweet spot for ${m.short}. Late details get dropped. Cut adjectives that don't change the picture.`]); }
+    else { s += 4; }
+    if (verbs && verbs <= capacity + 1) s += 3; else if (verbs) issues.push(["warn", "Too much happens for the clip length (see Action)."]);
+    if (beats || seq.length) s += 2; else issues.push(["tip", "Order the action with \"then\", \"as\", or beat times (0-3s, 3-8s)."]);
+    if (/\b(one|single) (continuous )?(shot|take)\b|\bcontinuous (shot|take)\b|\bone-take\b|\boner\b/.test(t)) s += 1;
+    if (cuts.length) {
+      if (m.multishot) issues.push(["tip", `Cuts detected. ${m.short} can handle multiple shots; keep each to one action and label them clearly.`]);
+      else { s -= 2; issues.push(["bad", "Cuts detected. Most models render one shot per generation, so split each shot into its own prompt."]); }
+    }
+    mk("timing", s, [`${wc} words`, `${ctx.dur}s`, ...(beats ? ["beat times"] : []), ...seq], issues);
+  }
+
+  // 9 CLARITY
+  {
+    const hype = find(t, LX.hype), emo = find(t, LX.emotion), negs = findNegations(raw);
+    const issues = [];
+    let s = 10;
+    if (hype.length) { s -= Math.min(4, hype.length * 1.2); issues.push(["bad", `Filler words that change nothing on screen: ${hype.map(h => `"${h}"`).join(", ")}. Quality tags from image models don't help video models. The forge strips them.`]); }
+    if (negs.length) { s -= Math.min(4, negs.length * 2); issues.push(["bad", `Negations in the main prompt: ${negs.map(n => `"${n.full.trim()}"`).join(", ")}. Naming a thing tends to summon it. Describe what IS there, and put exclusions in the avoid list.`]); }
+    if (emo.length) { s -= Math.min(3, emo.length); issues.push(["warn", `Feelings the camera can't see: ${emo.map(e => `"${e}"`).join(", ")}. Show them instead: posture, framing, light, pace.`]); }
+    if (has(t, LX.dayWords) && has(t, LX.nightWords) && !/(day to night|night to day|time-?lapse|transition)/.test(t)) { s -= 2; issues.push(["bad", "Contradiction: daytime and nighttime cues together."]); }
+    if (has(t, LX.staticWords) && has(t, LX.movingWords)) { s -= 2; issues.push(["bad", "Contradiction: a static camera and a moving camera in the same shot."]); }
+    if (has(t, LX.shakeWords) && has(t, LX.smoothWords)) { s -= 1; issues.push(["warn", "Handheld and smooth/steady both appear. Pick one."]); }
+    const shots = find(t, LX.shot);
+    if (shots.length >= 2 && !find(t, LX.cuts).length && !/\b(push(es)? in|pull(s)? (out|back)|zoom|dolly)\b.*\bto\b/.test(t)) { s -= 1; issues.push(["warn", `Two shot sizes (${shots.join(", ")}) with no move between them. Is it a push-in from one to the other, or two shots?`]); }
+    const segs = raw.split(",").map(x => x.trim()).filter(Boolean);
+    if (segs.length >= 6 && segs.reduce((n, x) => n + words(x).length, 0) / segs.length < 3) { s -= 2; issues.push(["warn", "Reads like an image-model tag list. Video models follow sentences better: subject, then action, then camera."]); }
+    if (!issues.length) issues.push(["good", "No filler, negations or contradictions found."]);
+    mk("clarity", s, [], issues, { hype, negs });
+  }
+
+  // 10 HAZARDS
+  {
+    const hits = HAZARDS.filter(h => h.re.test(raw));
+    const issues = hits.map(h => ["warn", `${h.label}: ${h.tip}`]);
+    const s = 10 - hits.length * 1.8;
+    if (!hits.length) issues.push(["good", "No known trouble zones detected."]);
+    mk("hazards", s, hits.map(h => h.label), issues);
+  }
+
+  const W = ctx.i2v
+    ? { subject: .5, action: 1.6, setting: .5, camera: 1.5, light: .5, style: .5, sound: .7, timing: .9, clarity: 1, hazards: .8 }
+    : { subject: 1.2, action: 1.3, setting: .9, camera: 1.1, light: .9, style: .8, sound: .7, timing: .8, clarity: 1, hazards: .7 };
+  let sum = 0, wsum = 0;
+  for (const k in res) { if (res[k].status === "skip") continue; sum += res[k].score * W[k]; wsum += W[k]; }
+  const total = raw.trim() ? Math.round((sum / wsum) * 10) : 0;
+  return { res, total, wc };
+}
+
+function verdictOf(total) {
+  if (total >= 80) return { cls: "pass", word: "Survived", line: "Ready for the render queue. Read the remaining tips, then generate." };
+  if (total >= 55) return { cls: "weak", word: "Wounded", line: "It will render, but the model will make choices you didn't. Answer the questions in the red and amber trials." };
+  return { cls: "fail", word: "Fallen", line: "Too much is left to chance. Work through the trials below; every answer goes straight into the forge." };
+}
+
+/* =====================================================================
+   FORGE
+   ===================================================================== */
+function cleanRaw(raw, an, opts) {
+  let s = raw;
+  if (opts.moveNeg) for (const n of an.res.clarity.negs) s = s.replace(n.full, " ");
+  if (opts.stripHype) {
+    const hype = [...an.res.clarity.hype].sort((a, b) => b.length - a.length);
+    for (const h of hype) s = s.replace(new RegExp("(^|[^a-z0-9])" + reEsc(h) + "(\\s+and\\b)?(?=$|[^a-z0-9])", "gi"), "$1");
+    s = s.replace(/\b(and|,)\s*(?=[,.]|$)/gi, "");
+  }
+  s = s.replace(/\s+,/g, ",").replace(/,\s*,+/g, ",").replace(/(^|[.!?]\s*),\s*/g, "$1").replace(/\s{2,}/g, " ").replace(/[,\s]+$/g, "").replace(/\s+\./g, ".").trim();
+  s = s.replace(/\b(and)\s*$/i, "").trim();
+  return s;
+}
+
+function F(k) { const v = state.fort[k]; return Array.isArray(v) ? v : (v || "").trim(); }
+
+function forge(raw, an, ctx) {
+  const m = MODELS[ctx.model];
+  const core = cleanRaw(raw, an, { stripHype: $("strip-hype").checked, moveNeg: $("move-neg").checked });
+  const shot = F("shot"), angle = F("angle"), move = F("move"), lens = F("lens");
+  const cameraBits = [shot, angle, move, ...lens].filter(Boolean);
+  const subj = F("subject_desc"), diff = F("subject_diff");
+  const action = F("action"), pace = F("pace");
+  const place = F("place"), time = F("time"), atmos = F("atmos");
+  const light = [...F("lightsrc"), ...F("lightq"), F("lightcol")].filter(Boolean);
+  const style = [F("medium"), ...F("grade"), F("ref")].filter(Boolean);
+  const dlg = F("dialogue"), sfx = F("sfx"), amb = F("amb"), music = F("music");
+  const struct = F("struct"), beats = F("beats");
+  const out = [];
+
+  if (state.fmt === "sheet") {
+    const line = (k, v) => v && out.push(`${k}: ${v}`);
+    line("SCENE", sentence(core));
+    line("SHOT", listJoin([shot, angle]));
+    line("CAMERA", listJoin([move, ...lens]));
+    line("SUBJECT", listJoin([subj, diff]));
+    line("ACTION", action ? sentence(action + (pace ? `, ${pace}` : "")) : (pace ? `Movement is ${pace}.` : ""));
+    line("SETTING", listJoin([place, time, ...atmos]));
+    line("LIGHTING", listJoin(light));
+    line("STYLE", listJoin(style));
+    if (ctx.audio) {
+      const a = [dlg && `Dialogue: ${dlg}`, sfx && `SFX: ${sfx}`, amb.length && `Ambience: ${amb.join(", ")}`, music && `Music: ${music}`].filter(Boolean);
+      line("AUDIO", a.join(" | "));
+    }
+    line("TIMING", listJoin([`${ctx.dur} seconds`, ctx.aspect, struct, beats]));
+    if (m.short === "Hailuo" && HAILUO_CAM[move]) out.push(HAILUO_CAM[move]);
+    return out.join("\n");
+  }
+
+  // Paragraph: camera first, then the scene, then everything else in the order models weigh it.
+  let camSentence = "";
+  if (cameraBits.length) {
+    camSentence = cap(listJoin([shot, angle, move])) || "";
+    if (lens.length) camSentence = camSentence ? `${camSentence}, ${lens.join(", ")}` : cap(lens.join(", "));
+    camSentence = sentence(camSentence);
+  }
+  if (m.short === "Hailuo" && HAILUO_CAM[move]) camSentence = `${HAILUO_CAM[move]} ${camSentence}`;
+  out.push(camSentence);
+  out.push(sentence(core));
+  if (subj) out.push(sentence(subj));
+  if (diff) out.push(sentence(diff));
+  if (action) out.push(sentence(action + (pace ? `, ${pace}` : "")));
+  else if (pace) out.push(`The movement is ${pace}.`);
+  const setBits = [place, time && (/^(dawn|morning|midday|night)$/.test(time) ? `at ${time}` : `during ${time}`), ...atmos].filter(Boolean);
+  if (setBits.length) out.push(sentence(setBits.join(", ")));
+  if (light.length) out.push(`Lighting: ${light.join(", ")}.`);
+  if (style.length) out.push(`Style: ${style.join(", ")}.`);
+  if (struct || beats) out.push(sentence([struct, beats].filter(Boolean).join(". ")));
+  if (ctx.audio) {
+    const a = [dlg && sentence(dlg), sfx && `Sound effects: ${sfx.replace(/\.$/, "")}.`, amb.length && `Ambience: ${amb.join(", ")}.`, music && (music === "no music" ? "No music." : `Music: ${music}.`)].filter(Boolean);
+    if (a.length) out.push("Audio: " + a.join(" "));
+  }
+  return out.filter(Boolean).join(" ").replace(/\s{2,}/g, " ").trim();
+}
+
+function buildNegative(an) {
+  const items = [];
+  if ($("move-neg").checked) for (const n of an.res.clarity.negs) items.push(n.phrase.replace(/^(any|a|an|the)\s+/i, ""));
+  items.push(...(state.fort.neg || []));
+  const extra = (state.fort.neg_extra || "").split(/[,;]/).map(s => s.trim()).filter(Boolean);
+  items.push(...extra);
+  return [...new Set(items.map(s => s.toLowerCase()))].join(", ");
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function ctx() {
+  return { model: $("model").value, dur: +$("dur").value, aspect: $("aspect").value, i2v: $("i2v").checked, audio: $("audio").checked };
+}
+
+function renderField(f) {
+  const id = "f-" + f.k;
+  if (f.type === "text") {
+    const v = escHtml(state.fort[f.k] || "");
+    return `<label class="q" for="${id}"><span>${escHtml(f.label)}</span><input type="text" id="${id}" data-k="${f.k}" placeholder="${escHtml(f.ph)}" value="${v}"></label>`;
+  }
+  const cur = state.fort[f.k];
+  const sel = v => f.single ? cur === v : (cur || []).includes(v);
+  return `<div class="q"><span id="${id}-l">${escHtml(f.label)}</span><div class="chips" role="group" aria-labelledby="${id}-l">${f.opts.map(o => `<button type="button" class="chip" data-k="${f.k}" data-v="${escHtml(o)}" data-single="${f.single ? 1 : 0}" aria-pressed="${sel(o)}">${escHtml(o)}</button>`).join("")}</div></div>`;
+}
+
+function renderTrials(an, c, reveal) {
+  const list = $("trial-list");
+  const openState = {};
+  list.querySelectorAll("details.trial").forEach(d => { openState[d.dataset.key] = d.open; });
+  list.innerHTML = TRIALS.map((tr, i) => {
+    const r = an.res[tr.key];
+    const n = String(i + 1).padStart(2, "0");
+    const scoreTxt = r.status === "skip" ? "N/A" : `${r.score.toFixed(1).replace(/\.0$/, "")}/10`;
+    const open = openState[tr.key] ?? (r.status === "fail" || r.status === "weak");
+    const fields = (FORT[tr.key] || []).filter(f => !f.when || f.when(r));
+    const foundHtml = r.found.length ? `<div class="found">${r.found.map(f => `<span class="tag">${escHtml(f)}</span>`).join("")}</div>` : "";
+    const issuesHtml = r.issues.length ? `<ul class="issues">${r.issues.map(([k, msg]) => `<li class="${k}">${escHtml(msg)}</li>`).join("")}</ul>` : "";
+    let fortHtml = "";
+    if (r.status !== "skip" && fields.length) fortHtml = `<div class="fortify"><h4>Fortify</h4>${fields.map(renderField).join("")}</div>`;
+    if (tr.key === "clarity") fortHtml = `<div class="fortify"><h4>Auto-fix</h4><p class="hint" style="margin:0">The forge removes filler words and moves "no X" phrases into the avoid list. Switch either off under the forged prompt. Contradictions and feelings are yours to resolve in the raw prompt.</p></div>`;
+    return `<details class="trial ${r.status}${reveal ? " reveal" : ""}" id="trial-${tr.key}" data-key="${tr.key}" ${open ? "open" : ""} style="${reveal ? `animation-delay:${i * 70}ms` : ""}">
+      <summary><span class="t-no">T${n}</span><span class="t-name">${tr.name}<span class="t-q">${tr.q}</span></span><span class="t-bar" aria-hidden="true"><i style="width:${r.status === "skip" ? 0 : r.score * 10}%"></i></span><span class="t-score">${scoreTxt}</span></summary>
+      <div class="t-body">${foundHtml}${issuesHtml}${fortHtml}</div>
+    </details>`;
+  }).join("");
+  $("strip").innerHTML = TRIALS.map((tr, i) => `<a href="#trial-${tr.key}" class="${an.res[tr.key].status}" title="${tr.name}: ${an.res[tr.key].status}">${tr.name.slice(0, 3).toUpperCase()}</a>`).join("");
+}
+
+function renderVerdict(an, thud) {
+  const raw = $("prompt").value;
+  const v = verdictOf(an.total);
+  $("score").textContent = raw.trim() ? an.total : "--";
+  const st = $("stamp");
+  st.className = "stamp " + (raw.trim() ? v.cls : "");
+  st.textContent = raw.trim() ? v.word : "Pending";
+  if (thud) { void st.offsetWidth; st.classList.add("thud"); }
+  const fails = TRIALS.filter(t => an.res[t.key].status === "fail").map(t => t.name);
+  $("verdict-line").textContent = raw.trim() ? v.line + (fails.length ? ` Failed: ${fails.join(", ")}.` : "") : "Write or paste a prompt to begin.";
+  $("wordcount").textContent = `${an.wc} words`;
+  $("sl-score").textContent = raw.trim() ? an.total : "--";
+}
+
+function renderForge(an, c) {
+  const raw = $("prompt").value;
+  const text = raw.trim() ? forge(raw, an, c) : "";
+  const forged = $("forged");
+  if (document.activeElement !== forged) forged.value = text;
+  const m = MODELS[c.model];
+  const wc = words(forged.value).length;
+  const [lo, hi] = m.words;
+  const cls = wc >= lo && wc <= hi ? "fit-ok" : (wc > hi * 1.3 || wc < lo / 2) ? "fit-bad" : "fit-warn";
+  $("forged-count").innerHTML = `${wc} words · <span class="${cls}">${m.short} range ${lo}-${hi}</span>`;
+  const fan = analyze(forged.value, c);
+  $("delta").innerHTML = raw.trim() ? `Raw <b>${an.total}</b> → Forged <b class="${verdictOf(fan.total).cls === "pass" ? "fit-ok" : verdictOf(fan.total).cls === "weak" ? "fit-warn" : "fit-bad"}">${fan.total}</b>` : "";
+  const neg = $("negative");
+  if (document.activeElement !== neg) neg.value = buildNegative(an);
+  $("neg-note").textContent = m.neg ? `Paste into ${m.short}'s negative prompt field.` : `${m.short} has no negative field. Use this as a checklist when reviewing takes, and phrase constraints positively in the prompt.`;
+}
+
+let lastAn = null;
+function update(reveal = false) {
+  const c = ctx();
+  const an = analyze($("prompt").value, c);
+  lastAn = an;
+  renderVerdict(an, reveal);
+  renderTrials(an, c, reveal);
+  renderForge(an, c);
+  $("sl-model").textContent = MODELS[c.model].short;
+  $("sl-dur").textContent = c.dur + "s";
+  saveDraft();
+}
+
+/* =====================================================================
+   CONTROLS
+   ===================================================================== */
+function fillModels() {
+  $("model").innerHTML = Object.entries(MODELS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
+}
+function fillDurs(keep) {
+  const m = MODELS[$("model").value];
+  const want = keep ?? +$("dur").value;
+  $("dur").innerHTML = m.durs.map(d => `<option value="${d}">${d} seconds</option>`).join("");
+  const best = m.durs.reduce((a, b) => Math.abs(b - want) < Math.abs(a - want) ? b : a, m.durs[0]);
+  $("dur").value = String(best);
+}
+function onModelChange(applyDefaults) {
+  const m = MODELS[$("model").value];
+  fillDurs();
+  if (applyDefaults) { $("audio").checked = m.audio; $("i2v").checked = m.i2v; }
+  $("model-note").textContent = m.note;
+}
+
+function saveDraft() {
+  store.set("pg.draft", { prompt: $("prompt").value, model: $("model").value, dur: $("dur").value, aspect: $("aspect").value, i2v: $("i2v").checked, audio: $("audio").checked, fort: state.fort, fmt: state.fmt, example: state.isExample });
+}
+
+function takes() { return store.get("pg.takes", []); }
+function renderTakes() {
+  const list = takes();
+  $("sl-take").textContent = String(list.length + 1).padStart(2, "0");
+  const ul = $("takes");
+  if (!list.length) { ul.innerHTML = `<li class="empty" style="display:block;border:0">No takes yet. Each run of the gauntlet is logged here so you can compare versions.</li>`; return; }
+  ul.innerHTML = list.slice().reverse().map((t, i) => {
+    const n = list.length - i;
+    const cls = verdictOf(t.score).cls;
+    return `<li><span class="n">TAKE ${String(n).padStart(2, "0")}</span><span class="s fit-${cls === "pass" ? "ok" : cls === "weak" ? "warn" : "bad"}">${t.score}</span><span class="p" title="${escHtml(t.prompt)}">${escHtml(t.prompt)}</span><button class="btn small" data-load="${n - 1}">Load</button></li>`;
+  }).join("");
+}
+function logTake(an) {
+  const list = takes();
+  const prompt = $("prompt").value.trim();
+  if (!prompt) return;
+  if (list.length && list[list.length - 1].prompt === prompt && list[list.length - 1].model === $("model").value) return;
+  list.push({ prompt, score: an.total, model: $("model").value, ts: Date.now() });
+  store.set("pg.takes", list.slice(-30));
+  renderTakes();
+}
+
+async function copyText(el, toastId) {
+  const toast = $(toastId);
+  try { await navigator.clipboard.writeText(el.value); toast.textContent = "Copied"; }
+  catch { el.focus(); el.select(); toast.textContent = "Selected. Press Ctrl+C or ⌘C to copy."; }
+  setTimeout(() => { toast.textContent = ""; }, 2400);
+}
+
+function setExampleFlag(on) { state.isExample = on; $("example-flag").hidden = !on; }
+
+/* Events ---------------------------------------------------------------- */
+let typingTimer;
+$("prompt").addEventListener("input", () => { setExampleFlag(false); clearTimeout(typingTimer); typingTimer = setTimeout(() => update(false), 250); });
+$("model").addEventListener("change", () => { onModelChange(true); update(false); });
+["dur", "aspect", "i2v", "audio", "strip-hype", "move-neg"].forEach(id => $(id).addEventListener("change", () => update(false)));
+$("run").addEventListener("click", () => { update(true); logTake(lastAn); document.getElementById("trials").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
+$("load-example").addEventListener("click", () => { $("prompt").value = EXAMPLE; state.fort = {}; setExampleFlag(true); update(true); });
+$("clear").addEventListener("click", () => { $("prompt").value = ""; state.fort = {}; setExampleFlag(false); update(false); $("prompt").focus(); });
+$("rerun").addEventListener("click", () => {
+  $("prompt").value = $("forged").value; state.fort = {}; setExampleFlag(false);
+  update(true); logTake(lastAn);
+  $("contender").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("copy-forged").addEventListener("click", () => copyText($("forged"), "toast-forged"));
+$("copy-neg").addEventListener("click", () => copyText($("negative"), "toast-neg"));
+$("forged").addEventListener("input", () => renderForge(lastAn, ctx()));
+["fmt-prose", "fmt-sheet"].forEach(id => $(id).addEventListener("click", () => {
+  state.fmt = id === "fmt-sheet" ? "sheet" : "prose";
+  $("fmt-prose").setAttribute("aria-pressed", state.fmt === "prose");
+  $("fmt-sheet").setAttribute("aria-pressed", state.fmt === "sheet");
+  $("forged").blur(); renderForge(lastAn, ctx()); saveDraft();
+}));
+
+$("trial-list").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  const k = b.dataset.k, v = b.dataset.v;
+  if (b.dataset.single === "1") {
+    state.fort[k] = state.fort[k] === v ? "" : v;
+    b.parentElement.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.v === state.fort[k]));
+  } else {
+    const arr = new Set(state.fort[k] || []);
+    arr.has(v) ? arr.delete(v) : arr.add(v);
+    state.fort[k] = [...arr];
+    b.setAttribute("aria-pressed", arr.has(v));
+  }
+  renderForge(lastAn, ctx()); saveDraft();
+});
+$("trial-list").addEventListener("input", e => {
+  const k = e.target.dataset?.k;
+  if (!k) return;
+  state.fort[k] = e.target.value;
+  renderForge(lastAn, ctx()); saveDraft();
+});
+$("takes").addEventListener("click", e => {
+  const b = e.target.closest("[data-load]");
+  if (!b) return;
+  const t = takes()[+b.dataset.load];
+  if (!t) return;
+  $("prompt").value = t.prompt; $("model").value = t.model; onModelChange(true); state.fort = {}; setExampleFlag(false);
+  update(true);
+  $("contender").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+/* =====================================================================
+   THE JUDGE (Claude, via the artifact runtime when available)
+   ===================================================================== */
+let sample = null, judgeCtl = null;
+function judgePrompt() {
+  const c = ctx(), m = MODELS[c.model];
+  const text = $("forged").value.trim() || $("prompt").value.trim();
+  const an = analyze(text, c);
+  const summary = TRIALS.map(t => { const r = an.res[t.key]; return `- ${t.name}: ${r.status === "skip" ? "skipped" : r.score + "/10"}${r.issues.filter(i => i[0] === "bad" || i[0] === "warn").map(i => " | " + i[1]).join("")}`; }).join("\n");
+  return `You are the final judge of the PROMPT GAUNTLET, a stress test for prompts written for AI video generation models. Judge the prompt the way an experienced AI video director would: will the model render what the author intends? Look for missing visual information, choreography that won't fit the duration, ambiguity between characters, physics or anatomy the model is likely to break, conflicting instructions, and anything the model is likely to misread.
+
+TARGET MODEL: ${m.name}. ${m.note}
+DURATION: ${c.dur} seconds. ASPECT: ${c.aspect}. MODE: ${c.i2v ? "image-to-video (a start frame defines the look)" : "text-to-video"}. AUDIO: ${c.audio ? "on" : "off"}.
+AUTOMATED TRIAL RESULTS (keyword heuristics, may be wrong):
+${summary}
+
+PROMPT UNDER TRIAL:
+"""
+${text}
+"""
+
+Reply with only a JSON object in this shape:
+{"score": <integer 0-100>, "verdict": "<one sentence>", "weaknesses": [{"trial": "<Subject|Action|Setting|Camera|Light|Style|Sound|Timing|Clarity|Hazards>", "issue": "<what will go wrong on screen>", "fix": "<specific change>"}], "questions": ["<question only the author can answer>"], "rewrite": "<the full improved prompt for ${m.short}>"}
+Rules: at most 6 weaknesses, ordered by impact. At most 5 questions. The rewrite keeps the author's intent and story, fits the duration and the model's habits, uses plain descriptive sentences, puts no negations in the prompt, and marks any detail you had to assume in [square brackets] so the author can confirm it.`;
+}
+
+function renderJudge(j) {
+  const out = $("judge-out");
+  const score = clamp(parseInt(j.score, 10) || 0, 0, 100);
+  const v = verdictOf(score);
+  const weak = Array.isArray(j.weaknesses) ? j.weaknesses : [];
+  const qs = Array.isArray(j.questions) ? j.questions : [];
+  out.innerHTML = `
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span class="jscore">${score}</span><span class="stamp ${v.cls}" style="font-size:22px">${v.word}</span></div>
+    <p style="margin:0">${escHtml(j.verdict || "")}</p>
+    ${weak.length ? `<div class="sub-h" style="margin:4px 0 0">Weaknesses</div><ol>${weak.map(w => `<li><b>${escHtml(w.trial || "")}.</b> ${escHtml(w.issue || "")} <span class="hint">Fix: ${escHtml(w.fix || "")}</span></li>`).join("")}</ol>` : ""}
+    ${qs.length ? `<div class="sub-h" style="margin:4px 0 0">Questions only you can answer</div><ol>${qs.map(q => `<li>${escHtml(q)}</li>`).join("")}</ol>` : ""}
+    ${j.rewrite ? `<div class="sub-h" style="margin:4px 0 0">Judge's rewrite</div><pre id="judge-rewrite">${escHtml(j.rewrite)}</pre><div class="actions" style="margin-top:0"><button class="btn small accent" id="use-rewrite">Use as forged prompt</button><button class="btn small" id="trial-rewrite">Send rewrite through the gauntlet</button></div>` : ""}`;
+  const rw = j.rewrite || "";
+  $("use-rewrite")?.addEventListener("click", () => { $("forged").value = rw; renderForge(lastAn, ctx()); $("forge").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("trial-rewrite")?.addEventListener("click", () => { $("prompt").value = rw; state.fort = {}; setExampleFlag(false); update(true); logTake(lastAn); $("contender").scrollIntoView({ behavior: "smooth", block: "start" }); });
+}
+
+const JUDGE_ERR = {
+  rate_limited: "Too many requests right now. Wait a minute and summon the judge again.",
+  session_expired: "Your Claude session expired. Sign in again, then retry.",
+  refused: "The judge declined this prompt. Change the content and try again.",
+  invalid_json: "The judge's answer came back malformed. Try again.",
+  empty_completion: "The judge returned nothing. Try again with a shorter prompt.",
+  prompt_too_large: "The prompt is too long to judge. Trim it and retry.",
+};
+$("summon").addEventListener("click", async () => {
+  if (!sample) return;
+  const out = $("judge-out");
+  judgeCtl = new AbortController();
+  $("summon").disabled = true; $("stop-judge").hidden = false;
+  out.innerHTML = `<p class="thinking">The judge is reading your prompt. This takes 10-60 seconds.</p>`;
+  try {
+    const j = await sample.json(judgePrompt(), { signal: judgeCtl.signal, modelTier: "default" });
+    renderJudge(j || {});
+  } catch (e) {
+    if (e && e.code === "cancelled") out.innerHTML = "";
+    else if (e && ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e.code)) { $("judge").hidden = true; }
+    else out.innerHTML = `<p class="thinking">${escHtml(JUDGE_ERR[e?.code] || "The judge couldn't be reached. Try again in a moment.")}</p>`;
+  } finally {
+    $("summon").disabled = false; $("stop-judge").hidden = true;
+  }
+});
+$("stop-judge").addEventListener("click", () => judgeCtl?.abort());
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+fillModels();
+const d = store.get("pg.draft", null);
+if (d && typeof d.prompt === "string") {
+  $("model").value = MODELS[d.model] ? d.model : "veo3";
+  onModelChange(false);
+  fillDurs(+d.dur);
+  $("aspect").value = d.aspect || "16:9";
+  $("i2v").checked = !!d.i2v; $("audio").checked = !!d.audio;
+  $("prompt").value = d.prompt;
+  state.fort = d.fort || {};
+  state.fmt = d.fmt === "sheet" ? "sheet" : "prose";
+  $("fmt-prose").setAttribute("aria-pressed", state.fmt === "prose");
+  $("fmt-sheet").setAttribute("aria-pressed", state.fmt === "sheet");
+  setExampleFlag(!!d.example);
+} else {
+  $("model").value = "veo3";
+  onModelChange(true);
+  $("dur").value = "8";
+  $("prompt").value = EXAMPLE;
+  setExampleFlag(true);
+}
+renderTakes();
+update(false);
+
+if (window.claude && typeof window.claude.use === "function") {
+  window.claude.use("sample").then(s => { if (s) { sample = s; $("judge").hidden = false; } }).catch(() => {});
+}
+})();
+</script>
+<!-- PAGE:END -->
+</body>
+</html>
