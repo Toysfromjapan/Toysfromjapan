@@ -103,6 +103,19 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
 .btn.danger[data-armed="true"] { background: var(--warn); color: var(--panel); border-color: var(--warn); }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
+/* sticker bank */
+.tray { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.tray-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.tray-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.sticker { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 6px 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: #1f2328; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.sticker img { height: 64px; width: auto; display: block; pointer-events: none; }
+.sticker span { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; color: #5d6872; }
+.sticker[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.tray-upload { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tray-upload input[type=text] { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 8px; width: 170px; max-width: 100%; }
+.ghost { position: fixed; z-index: 10; pointer-events: none; height: 110px; transform: translate(-50%, -50%); opacity: .85; filter: drop-shadow(0 4px 8px rgba(0,0,0,.25)); }
+.tool:disabled { opacity: .4; cursor: default; }
+
 @media (max-width: 1150px) {
   .app { grid-template-columns: 210px minmax(0, 1fr); }
   .slate-pane { grid-column: 1 / -1; }
@@ -139,6 +152,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   <section class="pane stage" aria-label="Frame">
     <div class="toolbar">
       <div class="group" id="tools" role="group" aria-label="Drawing tool">
+        <button class="tool" data-tool="move" title="Move stickers (V)">Move</button>
         <button class="tool" data-tool="pen" title="Pen (P)">Pen</button>
         <button class="tool" data-tool="line" title="Line (L)">Line</button>
         <button class="tool" data-tool="arrow" title="Arrow (A)">Arrow</button>
@@ -161,7 +175,27 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
         <button class="tool" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
         <button class="tool" id="guides" aria-pressed="true" title="Rule of thirds">Thirds</button>
       </div>
+      <div class="group" role="group" aria-label="Selected sticker" id="stickerBar">
+        <button class="tool" data-sact="flip" title="Mirror left to right">Flip</button>
+        <button class="tool" data-sact="bigger" title="Bigger">Bigger</button>
+        <button class="tool" data-sact="smaller" title="Smaller">Smaller</button>
+        <button class="tool" data-sact="front" title="Bring to front">To front</button>
+        <button class="tool" data-sact="remove" title="Remove sticker (Delete)">Remove</button>
+      </div>
     </div>
+    <section class="tray" aria-label="Sticker bank">
+      <div class="tray-head">
+        <span class="label">Stickers</span>
+        <div class="group" id="outfits" role="group" aria-label="Wardrobe"></div>
+        <span class="hint">Drag a sticker onto the frame, or tap it and then tap the frame. Use Move to reposition or resize from the corner.</span>
+      </div>
+      <div class="tray-row" id="trayRow"></div>
+      <div class="tray-upload" id="trayUpload" hidden>
+        <input type="text" id="upName" placeholder="Sticker name, e.g. Oliver" aria-label="Sticker name">
+        <label class="btn">Upload sticker image <input type="file" id="upFile" accept="image/png,image/webp,image/jpeg" hidden></label>
+        <span class="hint">Transparent PNG or WebP cutouts work best.</span>
+      </div>
+    </section>
     <div class="frame-wrap" id="frameWrap">
       <canvas id="board" aria-label="Shot drawing"></canvas>
       <input id="textInput" aria-label="Label text">
@@ -191,9 +225,127 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   const CAMERA = ["Static", "Push in", "Pull out", "Pan", "Tilt", "Tracking", "Crane", "Handheld", "Orbit", "Snap zoom"];
   const LS_KEY = "sceneboard.local.v1";
 
+  // ---------- stickers: Oliver, drawn from his bible entry ----------
+  const SKIN = "#8a5634", SKIN_D = "#5e3820", HAIR = "#2e1d12", COPPER = "#a0642e", OUT = "#1f2328";
+  const OUTFITS = {
+    designer: { name: "Designer", shirt: "#f6f6f3", collar: "#f6f6f3", pants: "#1b1c20", shoes: "#0c0c0e", belt: "#050505", short: false, tag: false },
+    cashier: { name: "Cashier", shirt: "#e8742c", collar: "#2f6b3a", pants: "#1b1c20", shoes: "#0c0c0e", belt: "#050505", short: true, tag: true },
+  };
+  const POSES = [
+    { id: "front", label: "Front" }, { id: "three", label: "Walk" }, { id: "profile", label: "Profile" },
+    { id: "back", label: "Back" }, { id: "crossed", label: "Arms crossed" }, { id: "point", label: "Point" },
+    { id: "sit", label: "Sit" }, { id: "head", label: "Head CU" },
+  ];
+  const ln = (x1, y1, x2, y2, col, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const pl = (pts, w, col) => `<polyline points="${pts.map(p => p.join(",")).join(" ")}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const limb = (pts, w, col) => pl(pts, w + 3, OUT) + pl(pts, w, col);
+  const hand = (x, y) => `<circle cx="${x}" cy="${y}" r="5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>`;
+  const shoe = (x, y, d, o) => `<ellipse cx="${x + d * 3}" cy="${y}" rx="${d ? 11 : 9}" ry="5" fill="${o.shoes}" stroke="${OUT}" stroke-width="1.5"/>`;
+  function arm(pts, o) {
+    const [a, b, c] = pts, tip = [c[0] + (c[0] - b[0]) * .12, c[1] + (c[1] - b[1]) * .12];
+    if (!o.short) return limb([a, b, c], 9, o.shirt) + hand(...tip);
+    const mid = [a[0] + (b[0] - a[0]) * .55, a[1] + (b[1] - a[1]) * .55];
+    return limb([a, b, c], 7, SKIN) + limb([a, mid], 11, o.shirt) + hand(...tip);
+  }
+  function headFront(cx, cy) {
+    return `<ellipse cx="${cx}" cy="${cy + 1}" rx="16.5" ry="19" fill="${HAIR}"/>
+<path d="M${cx - 16},${cy + 4} L${cx - 16.5},${cy + 19} L${cx - 11},${cy + 16} Z M${cx + 16},${cy + 4} L${cx + 16.5},${cy + 19} L${cx + 11},${cy + 16} Z" fill="${HAIR}"/>
+<rect x="${cx - 5}" y="${cy + 13}" width="10" height="9" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>
+<ellipse cx="${cx - 13.5}" cy="${cy + 1}" rx="3" ry="4.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.2"/>
+<ellipse cx="${cx + 13.5}" cy="${cy + 1}" rx="3" ry="4.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.2"/>
+<ellipse cx="${cx}" cy="${cy}" rx="13" ry="16.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>
+<path d="M${cx - 15},${cy - 1} C${cx - 16},${cy - 21} ${cx + 16},${cy - 21} ${cx + 15},${cy - 1} L${cx + 12},${cy - 8} L${cx + 7},${cy - 4} L${cx + 3},${cy - 10} L${cx - 2},${cy - 5} L${cx - 6},${cy - 11} L${cx - 11},${cy - 5} Z" fill="${HAIR}" stroke="${OUT}" stroke-width="1.2"/>
+${ln(cx - 6, cy - 15, cx - 4, cy - 7, COPPER, 1.6)}${ln(cx + 5, cy - 15, cx + 4, cy - 7, COPPER, 1.6)}
+${ln(cx - 9.5, cy - 2.5, cx - 2.5, cy - 3, HAIR, 2.8)}${ln(cx + 2.5, cy - 3, cx + 9.5, cy - 2.5, HAIR, 2.8)}
+<ellipse cx="${cx - 5.5}" cy="${cy + 1.6}" rx="2.6" ry="1.3" fill="#fff"/><ellipse cx="${cx + 5.5}" cy="${cy + 1.6}" rx="2.6" ry="1.3" fill="#fff"/>
+<circle cx="${cx - 5.5}" cy="${cy + 1.9}" r="1.1" fill="#2b1a10"/><circle cx="${cx + 5.5}" cy="${cy + 1.9}" r="1.1" fill="#2b1a10"/>
+${ln(cx - 8.5, cy + .7, cx - 2.5, cy + .7, SKIN_D, 1.5)}${ln(cx + 2.5, cy + .7, cx + 8.5, cy + .7, SKIN_D, 1.5)}
+${ln(cx - 8, cy + 4, cx - 3, cy + 4, SKIN_D, .8)}${ln(cx + 3, cy + 4, cx + 8, cy + 4, SKIN_D, .8)}
+<path d="M${cx},${cy + 3} L${cx - 1.8},${cy + 8} L${cx + 1.2},${cy + 8.4}" fill="none" stroke="${SKIN_D}" stroke-width="1"/>
+${ln(cx - 4, cy + 11.5, cx + 4, cy + 11.5, "#4a2a1a", 1.4)}`;
+  }
+  function headBack(cx, cy) {
+    return `<rect x="${cx - 5}" y="${cy + 13}" width="10" height="9" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>
+<ellipse cx="${cx - 13.5}" cy="${cy + 1}" rx="3" ry="4.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.2"/>
+<ellipse cx="${cx + 13.5}" cy="${cy + 1}" rx="3" ry="4.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.2"/>
+<path d="M${cx - 16},${cy + 4} C${cx - 19},${cy - 22} ${cx + 19},${cy - 22} ${cx + 16},${cy + 4} L${cx + 15},${cy + 22} L${cx + 6},${cy + 19} L${cx},${cy + 23} L${cx - 6},${cy + 19} L${cx - 15},${cy + 22} Z" fill="${HAIR}" stroke="${OUT}" stroke-width="1.4"/>
+${ln(cx - 7, cy - 12, cx - 9, cy + 8, COPPER, 1.4)}${ln(cx + 6, cy - 13, cx + 8, cy + 6, COPPER, 1.4)}<ellipse cx="${cx}" cy="${cy - 9}" rx="5" ry="3.5" fill="#4a3021" opacity=".7"/>`;
+  }
+  function headProfile(cx, cy) {
+    return `<path d="M${cx - 16},${cy - 4} C${cx - 18},${cy - 22} ${cx + 8},${cy - 24} ${cx + 12},${cy - 10} L${cx - 2},${cy + 10} L${cx - 9},${cy + 26} L${cx - 17},${cy + 24} Z" fill="${HAIR}" stroke="${OUT}" stroke-width="1.3"/>
+<rect x="${cx - 4}" y="${cy + 13}" width="9" height="9" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>
+<path d="M${cx - 11},${cy - 4} C${cx - 12},${cy - 18} ${cx + 10},${cy - 20} ${cx + 12},${cy - 4} L${cx + 13},${cy + 1} L${cx + 17},${cy + 7} L${cx + 13},${cy + 8.5} L${cx + 12.5},${cy + 12} C${cx + 10},${cy + 17} ${cx},${cy + 17} ${cx - 6},${cy + 13} Z" fill="${SKIN}" stroke="${OUT}" stroke-width="1.5"/>
+<ellipse cx="${cx - 3}" cy="${cy + 2}" rx="3" ry="4.5" fill="${SKIN}" stroke="${OUT}" stroke-width="1.2"/>
+<path d="M${cx - 12},${cy - 3} C${cx - 12},${cy - 20} ${cx + 12},${cy - 21} ${cx + 14},${cy - 5} L${cx + 10},${cy - 6} L${cx + 8},${cy - 1} L${cx + 4},${cy - 7} L${cx},${cy - 3} L${cx - 4},${cy - 8} Z" fill="${HAIR}" stroke="${OUT}" stroke-width="1.2"/>
+${ln(cx + 3, cy - 15, cx + 5, cy - 7, COPPER, 1.5)}${ln(cx + 6, cy - 2.5, cx + 12, cy - 2, HAIR, 2.8)}
+<ellipse cx="${cx + 9}" cy="${cy + 1.6}" rx="1.8" ry="1.2" fill="#fff"/><circle cx="${cx + 9.6}" cy="${cy + 1.9}" r="1" fill="#2b1a10"/>
+${ln(cx + 7, cy + .6, cx + 11, cy + .6, SKIN_D, 1.4)}${ln(cx + 9, cy + 12, cx + 12.5, cy + 12, "#4a2a1a", 1.3)}`;
+  }
+  function torsoFront(cx, o, back) {
+    const top = 46, waist = 106;
+    let s = `<path d="M${cx - 20},${top + 5} Q${cx - 21},${top} ${cx - 13},${top} L${cx + 13},${top} Q${cx + 21},${top} ${cx + 20},${top + 5} L${cx + 15},${waist} L${cx - 15},${waist} Z" fill="${o.shirt}" stroke="${OUT}" stroke-width="1.5"/>`;
+    if (back) s += `<path d="M${cx - 9},${top} L${cx + 9},${top} L${cx + 8},${top + 4} L${cx - 8},${top + 4} Z" fill="${o.collar}" stroke="${OUT}" stroke-width="1"/>`;
+    else {
+      s += `<path d="M${cx - 9},${top - 1} L${cx},${top + 9} L${cx + 9},${top - 1} L${cx + 5},${top - 3} L${cx},${top + 3} L${cx - 5},${top - 3} Z" fill="${o.collar}" stroke="${OUT}" stroke-width="1"/>`;
+      if (o.tag) s += `<rect x="${cx + 4}" y="${top + 14}" width="9" height="5" rx="1" fill="#fff" stroke="${OUT}" stroke-width=".8"/>`;
+      else for (const y of [top + 14, top + 26, top + 38, top + 50]) s += `<circle cx="${cx}" cy="${y}" r="1" fill="#9aa0a6"/>`;
+    }
+    return s + `<path d="M${cx - 15},${waist - 3} L${cx + 15},${waist - 3} L${cx + 16},${waist + 16} L${cx - 16},${waist + 16} Z" fill="${o.pants}" stroke="${OUT}" stroke-width="1.5"/><rect x="${cx - 15}" y="${waist - 3}" width="30" height="5" fill="${o.belt}"/>`;
+  }
+  function legs(L, R, feet, o) { return limb(L, 13, o.pants) + limb(R, 13, o.pants) + feet.map(f => shoe(f[0], f[1], f[2], o)).join(""); }
+  function svgFor(pose, outfit) {
+    const o = OUTFITS[outfit]; let w = 120, h = 300, body = "";
+    const frontLegs = legs([[53, 112], [52, 196], [52, 281]], [[67, 112], [68, 196], [68, 281]], [[50, 287, 0], [70, 287, 0]], o);
+    if (pose === "front" || pose === "back") {
+      body = frontLegs + torsoFront(60, o, pose === "back") + arm([[42, 52], [37, 100], [37, 144]], o) + arm([[78, 52], [83, 100], [83, 144]], o) + (pose === "back" ? headBack(60, 26) : headFront(60, 26));
+    } else if (pose === "three") {
+      body = legs([[54, 112], [46, 196], [36, 279]], [[66, 112], [74, 196], [82, 276]], [[33, 285, -1], [85, 282, 1]], o) + torsoFront(60, o) + arm([[42, 52], [44, 98], [54, 140]], o) + arm([[78, 52], [81, 98], [74, 142]], o) + headFront(60, 26);
+    } else if (pose === "crossed") {
+      body = legs([[54, 112], [50, 196], [48, 281]], [[66, 112], [68, 196], [71, 281]], [[46, 287, 0], [72, 287, 0]], o) + torsoFront(60, o) + arm([[42, 52], [41, 88], [72, 86]], o) + arm([[78, 52], [79, 90], [48, 89]], o) + headFront(60, 26);
+    } else if (pose === "point") {
+      w = 130; body = frontLegs + torsoFront(60, o) + arm([[42, 52], [37, 100], [37, 144]], o) + arm([[78, 52], [100, 64], [120, 62]], o) + headFront(60, 26);
+    } else if (pose === "sit") {
+      body = `<rect x="22" y="196" width="76" height="92" fill="#cfd5da" stroke="${OUT}" stroke-width="1.5"/>` +
+        `<g transform="translate(0,72)">${torsoFront(60, o)}${headFront(60, 26)}</g>` +
+        legs([[53, 186], [42, 168], [44, 281]], [[67, 186], [78, 168], [76, 281]], [[42, 287, 0], [78, 287, 0]], o) +
+        arm([[42, 124], [36, 158], [44, 172]], o) + arm([[78, 124], [84, 158], [76, 172]], o);
+    } else if (pose === "profile") {
+      const legsP = limb([[59, 112], [57, 196], [57, 281]], 13, "#111216") + limb([[62, 112], [63, 196], [63, 281]], 13, o.pants) + shoe(64, 287, 1, o);
+      const torsoP = `<path d="M51,51 Q50,46 56,46 L66,46 Q71,47 70,52 L68,106 L52,106 Z" fill="${o.shirt}" stroke="${OUT}" stroke-width="1.5"/>` +
+        `<path d="M58,45 L66,45 L70,52 L64,50 Z" fill="${o.collar}" stroke="${OUT}" stroke-width="1"/>` +
+        `<path d="M52,103 L68,103 L69,120 L52,120 Z" fill="${o.pants}" stroke="${OUT}" stroke-width="1.5"/><rect x="52" y="103" width="16" height="5" fill="${o.belt}"/>`;
+      body = legsP + torsoP + arm([[60, 52], [62, 100], [65, 144]], o) + headProfile(60, 26);
+    } else if (pose === "head") {
+      w = 120; h = 140;
+      body = `<path d="M8,140 Q12,110 40,104 L80,104 Q108,110 112,140 Z" fill="${o.shirt}" stroke="${OUT}" stroke-width="1.5"/>` +
+        `<path d="M44,103 L60,124 L76,103 L68,99 L60,110 L52,99 Z" fill="${o.collar}" stroke="${OUT}" stroke-width="1.2"/>` +
+        `<g transform="translate(60,58) scale(2.45) translate(-60,-26)">${headFront(60, 26)}</g>`;
+    }
+    return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w * 2}" height="${h * 2}" viewBox="0 0 ${w} ${h}">${body}</svg>`, ar: w / h };
+  }
+  const BUILTIN = {};
+  for (const outfit of Object.keys(OUTFITS)) for (const p of POSES) {
+    const { svg, ar } = svgFor(p.id, outfit);
+    BUILTIN[`oliver:${p.id}:${outfit}`] = { name: "Oliver", label: p.label, ar, src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg), head: p.id === "head" };
+  }
+  const IMG = {};
+  function stickerDef(key) {
+    if (BUILTIN[key]) return BUILTIN[key];
+    if (key && key.startsWith("u:")) {
+      const c = state.custom.find(x => x.id === key.slice(2));
+      if (c) return { name: c.name, label: c.name, ar: c.w / c.h, src: "/_blob/" + c.imageId, head: false };
+    }
+    return null;
+  }
+  function stickerImg(key) {
+    const def = stickerDef(key); if (!def) return null;
+    if (IMG[key] && IMG[key].src.endsWith(def.src.slice(-40))) return IMG[key];
+    const im = new Image(); im.onload = () => { renderBoard(); renderStrip(); }; im.src = def.src; IMG[key] = im; return im;
+  }
+
   const $ = id => document.getElementById(id);
   const board = $("board"), ctx = board.getContext("2d");
-  const state = { shots: [], scene: null, selId: null, tool: "pen", ink: "ink", width: 3, guides: true };
+  const state = { shots: [], scene: null, selId: null, tool: "pen", ink: "ink", width: 3, guides: true, outfit: "cashier", sel: null, armed: null, custom: [] };
   let db = null, assets = null, cur = null, history = { undo: [], redo: [] };
   let drawing = null, editSeq = 0;
   const saver = { timer: null, imgTimer: null, busy: false, again: false, imgBusy: false };
@@ -346,7 +498,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
     if (!quiet) await flushAll();
     const s = state.shots.find(x => x.id === id); if (!s) return;
     cur = clone(s); cur.id = id; cur.strokes = cur.strokes || []; cur.dirty = false;
-    history = { undo: [], redo: [] };
+    history = { undo: [], redo: [] }; state.sel = null;
     renderSlate(); renderBoard(); renderStrip(); syncToolbar();
   }
 
@@ -472,6 +624,45 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
     }
     drawStrokes(ctx, cur.strokes, k);
     if (drawing && drawing.preview) drawStrokes(ctx, [drawing.preview], k);
+    const sel = selected();
+    if (sel) {
+      const b = stickerBox(sel);
+      ctx.save(); ctx.strokeStyle = "#2647c9"; ctx.lineWidth = 2; ctx.setLineDash([8, 5]);
+      ctx.strokeRect(b.x * k, b.y * k, b.w * k, b.h * k); ctx.setLineDash([]);
+      ctx.fillStyle = "#2647c9"; ctx.fillRect((b.x + b.w) * k - 9, (b.y + b.h) * k - 9, 18, 18); ctx.restore();
+    }
+  }
+  function selected() { const s = cur && state.sel != null ? cur.strokes[state.sel] : null; return s && s.t === "sticker" ? s : null; }
+  function stickerBox(s) { const def = stickerDef(s.key); return { x: s.p[0], y: s.p[1], w: s.h * (def ? def.ar : .4), h: s.h }; }
+  function hitSticker([x, y]) {
+    const [LW] = logical(), grab = 32 * LW / 1600;
+    for (let i = cur.strokes.length - 1; i >= 0; i--) {
+      const s = cur.strokes[i]; if (s.t !== "sticker") continue;
+      const b = stickerBox(s);
+      if (Math.abs(x - (b.x + b.w)) < grab && Math.abs(y - (b.y + b.h)) < grab) return { i, handle: true };
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return { i, handle: false };
+    }
+    return null;
+  }
+  function placeSticker(key, [x, y]) {
+    if (!cur) return;
+    const def = stickerDef(key); if (!def) return;
+    const [LW, LH] = logical(), h = Math.round(LH * (def.head ? .34 : .62)), w = h * def.ar;
+    const px = Math.round(Math.min(Math.max(x - w / 2, -w / 2), LW - w / 2)), py = Math.round(Math.min(Math.max(y - h / 2, -h / 2), LH - h / 2));
+    pushHistory(); cur.strokes.push({ t: "sticker", key, c: "ink", w: 1, p: [px, py], h, f: 0 });
+    state.sel = cur.strokes.length - 1; state.tool = "move"; state.armed = null;
+    syncToolbar(); renderTray(); changed();
+  }
+  function stickerAction(a) {
+    const s = selected(); if (!s) return;
+    pushHistory();
+    if (a === "flip") s.f = s.f ? 0 : 1;
+    else if (a === "bigger" || a === "smaller") {
+      const b = stickerBox(s), f = a === "bigger" ? 1.15 : 1 / 1.15, nh = Math.max(40, Math.round(s.h * f));
+      s.p = [Math.round(b.x + b.w / 2 - nh * (b.w / b.h) / 2), Math.round(b.y + b.h - nh)]; s.h = nh;
+    } else if (a === "front") { cur.strokes.splice(state.sel, 1); cur.strokes.push(s); state.sel = cur.strokes.length - 1; }
+    else if (a === "remove") { cur.strokes.splice(state.sel, 1); state.sel = null; }
+    syncToolbar(); changed();
   }
   function line(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
   function drawStrokes(c, strokes, k) {
@@ -489,6 +680,19 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
       else if (s.t === "rect") c.strokeRect(Math.min(p[0], p[2]) * k, Math.min(p[1], p[3]) * k, Math.abs(p[2] - p[0]) * k, Math.abs(p[3] - p[1]) * k);
       else if (s.t === "ellipse") { c.beginPath(); c.ellipse((p[0] + p[2]) / 2 * k, (p[1] + p[3]) / 2 * k, Math.abs(p[2] - p[0]) / 2 * k, Math.abs(p[3] - p[1]) / 2 * k, 0, 0, Math.PI * 2); c.stroke(); }
       else if (s.t === "text") { c.font = `600 ${s.size * k}px "IBM Plex Sans", sans-serif`; c.textBaseline = "top"; c.fillText(s.s, p[0] * k, p[1] * k); }
+      else if (s.t === "sticker") {
+        const def = stickerDef(s.key), im = stickerImg(s.key), w = s.h * (def ? def.ar : .4);
+        const x = p[0] * k, y = p[1] * k, W = w * k, H = s.h * k;
+        if (im && im.complete && im.naturalWidth) {
+          if (s.f) { c.save(); c.translate(x + W, y); c.scale(-1, 1); c.drawImage(im, 0, 0, W, H); c.restore(); }
+          else c.drawImage(im, x, y, W, H);
+        } else { c.save(); c.setLineDash([6, 6]); c.strokeStyle = "#8a949c"; c.lineWidth = 1; c.strokeRect(x, y, W, H); c.restore(); }
+        if (def) {
+          const fs = Math.max(11, Math.min(26, s.h * .055)) * k;
+          c.font = `600 ${fs}px "IBM Plex Sans", sans-serif`; c.textAlign = "center"; c.textBaseline = "top";
+          c.fillStyle = "#1f2328"; c.fillText(def.name, x + W / 2, y + H + 2 * k); c.textAlign = "left";
+        }
+      }
     }
     c.restore();
   }
@@ -513,13 +717,28 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   }
   function eraseAt([x, y]) {
     const r2 = 18 * 18; const before = cur.strokes.length;
-    cur.strokes = cur.strokes.filter(s => !samplePoints(s).some(([a, b]) => (a - x) ** 2 + (b - y) ** 2 < r2));
+    cur.strokes = cur.strokes.filter(s => {
+      if (s.t === "sticker") { const b = stickerBox(s); return !(x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); }
+      return !samplePoints(s).some(([a, b]) => (a - x) ** 2 + (b - y) ** 2 < r2);
+    });
+    if (cur.strokes.length !== before) state.sel = null;
     if (cur.strokes.length !== before) { renderBoard(); drawing.erased = true; }
   }
 
   board.addEventListener("pointerdown", e => {
     if (!cur || e.button > 0) return;
     const pt = toLogical(e);
+    if (state.armed) { placeSticker(state.armed, pt); e.preventDefault(); return; }
+    if (state.tool === "move") {
+      const hit = hitSticker(pt);
+      state.sel = hit ? hit.i : null;
+      if (hit) {
+        board.setPointerCapture(e.pointerId); pushHistory();
+        const s = cur.strokes[hit.i];
+        drawing = { mode: hit.handle ? "resize" : "drag", i: hit.i, start: pt, orig: { x: s.p[0], y: s.p[1], h: s.h }, moved: false };
+      }
+      syncToolbar(); renderBoard(); return;
+    }
     if (state.tool === "text") { openText(pt, e); e.preventDefault(); return; }
     board.setPointerCapture(e.pointerId);
     pushHistory();
@@ -532,6 +751,13 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   board.addEventListener("pointermove", e => {
     if (!drawing) return;
     const pt = toLogical(e);
+    if (drawing.mode) {
+      const s = cur.strokes[drawing.i], o = drawing.orig, dx = pt[0] - drawing.start[0], dy = pt[1] - drawing.start[1];
+      if (Math.abs(dx) + Math.abs(dy) > 2) drawing.moved = true;
+      if (drawing.mode === "drag") s.p = [o.x + dx, o.y + dy];
+      else s.h = Math.max(40, Math.round(o.h + dy));
+      renderBoard(); return;
+    }
     if (state.tool === "eraser") { eraseAt(pt); return; }
     const s = drawing.preview;
     if (s.t === "pen") { const n = s.p.length; if ((pt[0] - s.p[n - 2]) ** 2 + (pt[1] - s.p[n - 1]) ** 2 > 9) s.p.push(pt[0], pt[1]); }
@@ -541,6 +767,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   function endStroke() {
     if (!drawing) return;
     const d = drawing; drawing = null;
+    if (d.mode) { if (d.moved) changed(); else history.undo.pop(); return; }
     if (state.tool === "eraser") { if (d.erased) changed(); else history.undo.pop(); return; }
     const s = d.preview;
     const tiny = s.t !== "pen" && Math.abs(s.p[2] - s.p[0]) < 4 && Math.abs(s.p[3] - s.p[1]) < 4;
@@ -565,8 +792,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   ti.addEventListener("keydown", e => { if (e.key === "Enter") commitText(); if (e.key === "Escape") { ti.style.display = "none"; textAt = null; } });
   ti.addEventListener("blur", commitText);
 
-  function undo() { if (!cur || !history.undo.length) return; history.redo.push(clone(cur.strokes)); cur.strokes = history.undo.pop(); changed(); }
-  function redo() { if (!cur || !history.redo.length) return; history.undo.push(clone(cur.strokes)); cur.strokes = history.redo.pop(); changed(); }
+  function undo() { if (!cur || !history.undo.length) return; history.redo.push(clone(cur.strokes)); cur.strokes = history.undo.pop(); state.sel = null; syncToolbar(); changed(); }
+  function redo() { if (!cur || !history.redo.length) return; history.undo.push(clone(cur.strokes)); cur.strokes = history.redo.pop(); state.sel = null; syncToolbar(); changed(); }
 
   async function exportPng(shot) {
     const [LW, LH] = SIZES[shot.aspect || "16:9"];
@@ -590,7 +817,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
     for (const b of document.querySelectorAll("[data-aspect]")) { b.setAttribute("aria-pressed", String(cur && cur.aspect === b.dataset.aspect)); b.disabled = !cur; }
     for (const b of document.querySelectorAll("[data-ink]")) b.setAttribute("aria-pressed", String(b.dataset.ink === state.ink));
     $("guides").setAttribute("aria-pressed", String(state.guides));
-    board.style.cursor = state.tool === "text" ? "text" : state.tool === "eraser" ? "cell" : "crosshair";
+    for (const b of document.querySelectorAll("[data-sact]")) b.disabled = !selected();
+    board.style.cursor = state.armed ? "copy" : state.tool === "move" ? "move" : state.tool === "text" ? "text" : state.tool === "eraser" ? "cell" : "crosshair";
   }
   for (const i of INKS) {
     const b = document.createElement("button"); b.className = "swatch"; b.dataset.ink = i.key; b.title = i.name; b.setAttribute("aria-label", i.name);
@@ -605,10 +833,12 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
     if (!cur || cur.aspect === b.dataset.aspect) return;
     const [ow, oh] = SIZES[cur.aspect], [nw, nh] = SIZES[b.dataset.aspect];
     pushHistory();
-    cur.strokes = cur.strokes.map(s => ({ ...s, p: s.p.map((v, i) => Math.round(i % 2 ? v / oh * nh : v / ow * nw)) }));
+    cur.strokes = cur.strokes.map(s => ({ ...s, p: s.p.map((v, i) => Math.round(i % 2 ? v / oh * nh : v / ow * nw)), ...(s.t === "sticker" ? { h: Math.round(s.h * Math.min(nw / ow, nh / oh)) } : {}) }));
+    state.sel = null;
     cur.aspect = b.dataset.aspect; syncToolbar(); changed();
   });
   $("undo").onclick = undo; $("redo").onclick = redo;
+  document.querySelectorAll("[data-sact]").forEach(b => b.onclick = () => stickerAction(b.dataset.sact));
   $("guides").onclick = () => { state.guides = !state.guides; syncToolbar(); renderBoard(); };
   $("addShot").onclick = () => addShot();
   $("newSceneForm").addEventListener("submit", async e => {
@@ -619,14 +849,95 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
   document.addEventListener("keydown", e => {
     if (e.target.closest("input, textarea")) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
-    const map = { p: "pen", l: "line", a: "arrow", r: "rect", o: "ellipse", t: "text", e: "eraser" };
+    if ((e.key === "Delete" || e.key === "Backspace") && selected()) { e.preventDefault(); stickerAction("remove"); return; }
+    if (e.key === "Escape" && state.armed) { state.armed = null; renderTray(); return; }
+    const map = { v: "move", p: "pen", l: "line", a: "arrow", r: "rect", o: "ellipse", t: "text", e: "eraser" };
     if (!e.ctrlKey && !e.metaKey && map[e.key.toLowerCase()]) { state.tool = map[e.key.toLowerCase()]; syncToolbar(); }
   });
   let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderBoard, 120); });
   window.addEventListener("pagehide", () => { if (cur && cur.dirty) flush(); });
 
+  // ---------- sticker tray ----------
+  for (const [key, o] of Object.entries(OUTFITS)) {
+    const b = document.createElement("button"); b.className = "tool"; b.type = "button"; b.textContent = o.name; b.dataset.outfit = key;
+    b.onclick = () => { state.outfit = key; renderTray(); };
+    $("outfits").appendChild(b);
+  }
+  function trayKeys() {
+    return [...POSES.map(p => `oliver:${p.id}:${state.outfit}`), ...state.custom.map(c => "u:" + c.id)];
+  }
+  function renderTray() {
+    for (const b of $("outfits").children) b.setAttribute("aria-pressed", String(b.dataset.outfit === state.outfit));
+    const row = $("trayRow"); row.textContent = "";
+    for (const key of trayKeys()) {
+      const def = stickerDef(key); if (!def) continue;
+      const b = document.createElement("button"); b.type = "button"; b.className = "sticker";
+      b.setAttribute("aria-pressed", String(state.armed === key));
+      b.setAttribute("aria-label", `${def.name}, ${def.label}. Drag onto the frame or tap to place.`);
+      const im = document.createElement("img"); im.src = def.src; im.alt = ""; im.draggable = false;
+      const l = document.createElement("span"); l.textContent = key.startsWith("u:") ? def.name : def.label;
+      b.append(im, l);
+      b.addEventListener("pointerdown", e => trayDown(e, key, def));
+      b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); state.armed = state.armed === key ? null : key; renderTray(); syncToolbar(); } });
+      row.appendChild(b);
+    }
+    board.style.cursor = state.armed ? "copy" : board.style.cursor;
+  }
+  let tdrag = null;
+  function trayDown(e, key, def) {
+    if (e.button > 0) return;
+    e.preventDefault();
+    tdrag = { key, def, x0: e.clientX, y0: e.clientY, ghost: null };
+    window.addEventListener("pointermove", trayMove);
+    window.addEventListener("pointerup", trayUp);
+    window.addEventListener("pointercancel", trayCancel);
+  }
+  function trayMove(e) {
+    if (!tdrag) return;
+    if (!tdrag.ghost && Math.hypot(e.clientX - tdrag.x0, e.clientY - tdrag.y0) > 6) {
+      const g = document.createElement("img"); g.className = "ghost"; g.src = tdrag.def.src; g.alt = "";
+      document.body.appendChild(g); tdrag.ghost = g;
+    }
+    if (tdrag.ghost) { tdrag.ghost.style.left = e.clientX + "px"; tdrag.ghost.style.top = e.clientY + "px"; }
+  }
+  function trayEnd() {
+    window.removeEventListener("pointermove", trayMove); window.removeEventListener("pointerup", trayUp); window.removeEventListener("pointercancel", trayCancel);
+    if (tdrag && tdrag.ghost) tdrag.ghost.remove();
+  }
+  function trayCancel() { trayEnd(); tdrag = null; }
+  function trayUp(e) {
+    const d = tdrag; trayEnd(); tdrag = null; if (!d) return;
+    if (d.ghost) {
+      const r = board.getBoundingClientRect();
+      if (cur && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) placeSticker(d.key, toLogical(e));
+      else setStatus(cur ? "Drop stickers inside the frame" : "Add a shot first, then drop stickers on it", "err");
+    } else {
+      state.armed = state.armed === d.key ? null : d.key; renderTray(); syncToolbar();
+      if (state.armed) setStatus(cur ? "Tap the frame to place the sticker" : "Add a shot first, then place stickers on it");
+    }
+  }
+
+  async function uploadSticker(file) {
+    if (!assets || !db || !file) return;
+    const type = ({ "image/png": 1, "image/webp": 1, "image/jpeg": 1 })[file.type] ? file.type : "image/png";
+    setStatus("Uploading sticker");
+    try {
+      const url = URL.createObjectURL(file);
+      const dims = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res([i.naturalWidth, i.naturalHeight]); i.onerror = rej; i.src = url; });
+      URL.revokeObjectURL(url);
+      const up = await assets.upload(file, { type });
+      const name = ($("upName").value.trim() || file.name.replace(/\.[^.]+$/, "")).slice(0, 40);
+      const id = newId();
+      await db.collection("stickers").doc(id).set({ name, imageId: up.id, w: dims[0], h: dims[1], createdAt: new Date().toISOString() });
+      $("upName").value = ""; setStatus("Sticker added");
+    } catch (e) {
+      setStatus(e && e.code === "too_large" ? "That image is over 20 MB" : e && e.code === "unsupported_type" ? "Use a PNG, WebP or JPEG image" : "Sticker not uploaded, try again", "err");
+    }
+  }
+  $("upFile").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; uploadSticker(f); });
+
   // ---------- boot ----------
-  syncToolbar(); renderScenes(); renderStrip(); renderSlate(); renderBoard();
+  syncToolbar(); renderTray(); renderScenes(); renderStrip(); renderSlate(); renderBoard();
   setStatus("Connecting");
   const local = readLocal();
   const start = async () => {
@@ -635,6 +946,10 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px
     assets = api ? await api.use("assets").catch(() => null) : null;
     if (!db) { setStatus("Offline: saving on this device only", "err"); applyShots(local); return; }
     setStatus("Connected");
+    if (assets) $("trayUpload").hidden = false;
+    db.collection("stickers").onSnapshot(
+      snap => { state.custom = snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(c => c.imageId && c.w && c.h); renderTray(); renderBoard(); renderStrip(); },
+      () => {});
     db.collection("shots").onSnapshot(
       snap => applyShots(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
       () => setStatus("Lost connection to the board. Reload to reconnect.", "err"));
