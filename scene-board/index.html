@@ -1,0 +1,644 @@
+<title>Scene Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: production desk. Shot strip on the left, the drawing frame in the middle, the shot slate on the right. */
+:root {
+  --bg: #e9ecee;
+  --panel: #f7f8f9;
+  --line: #cfd5da;
+  --fg: #1c2126;
+  --muted: #5d6872;
+  --accent: #2647c9;
+  --accent-soft: #dfe5fb;
+  --ok: #1d7a46;
+  --ok-soft: #dcf0e3;
+  --warn: #9a5b00;
+  --paper: #ffffff;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181c; --panel: #1c2126; --line: #2f373f; --fg: #e5e9ec; --muted: #9aa5ae;
+    --accent: #8ea2ff; --accent-soft: #263055; --ok: #6fd39a; --ok-soft: #1d3a2a; --warn: #f0b25a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181c; --panel: #1c2126; --line: #2f373f; --fg: #e5e9ec; --muted: #9aa5ae;
+  --accent: #8ea2ff; --accent-soft: #263055; --ok: #6fd39a; --ok-soft: #1d3a2a; --warn: #f0b25a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-body); padding-inline: 16px; padding-block: 12px 24px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 12px; }
+.brand { font: 800 26px/1 var(--font-display); letter-spacing: .02em; text-transform: uppercase; margin: 0; }
+.scenes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.scene-btn { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.scene-btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.new-scene { display: flex; gap: 6px; }
+.new-scene input { width: 180px; max-width: 100%; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 8px; }
+.status { margin-left: auto; font: 12px var(--font-mono); color: var(--muted); }
+.status[data-kind="err"] { color: var(--warn); }
+
+.app { display: grid; grid-template-columns: 230px minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+
+/* shot strip */
+.strip { padding: 10px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 110px); overflow: auto; }
+.strip-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.runtime { font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; }
+.shot { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 6px; border: 1px solid transparent; border-radius: 8px; background: none; text-align: left; width: 100%; }
+.shot:hover { border-color: var(--line); }
+.shot[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.shot canvas { width: 76px; height: 43px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; display: block; }
+.shot canvas.tall { width: 43px; height: 76px; justify-self: center; }
+.shot-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.shot-id { font: 700 18px/1 var(--font-display); letter-spacing: .02em; }
+.shot-sub { font: 11px var(--font-mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { align-self: start; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; border-radius: 4px; padding: 1px 6px; background: var(--bg); color: var(--muted); }
+.pill.ready { background: var(--ok-soft); color: var(--ok); }
+.add-shot { border: 1px dashed var(--line); background: none; border-radius: 8px; padding: 8px; color: var(--muted); }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 2px; }
+
+/* stage */
+.stage { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.tool { border: 0; background: none; border-radius: 6px; padding: 5px 9px; font-size: 13px; }
+.tool[aria-pressed="true"] { background: var(--panel); box-shadow: 0 0 0 1px var(--line); font-weight: 600; }
+.swatch { width: 28px; height: 28px; border-radius: 6px; border: 0; display: grid; place-items: center; background: none; }
+.swatch span { width: 16px; height: 16px; border-radius: 50%; display: block; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--fg) inset; }
+.frame-wrap { position: relative; width: 100%; margin-inline: auto; }
+#board { display: block; width: 100%; height: auto; background: var(--paper); border-radius: 6px; box-shadow: 0 0 0 1px var(--line); touch-action: none; cursor: crosshair; }
+#textInput { position: absolute; display: none; font: 600 18px var(--font-body); color: #1f2328; background: #fff; border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; min-width: 120px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.hint { font-size: 12px; color: var(--muted); }
+
+/* details */
+.slate { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field input, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 6px 8px; }
+.field textarea { resize: vertical; min-height: 70px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 2px 9px; font-size: 12px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.ready-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.ready-toggle[data-on="true"] { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 5px 10px; font-size: 13px; }
+.btn.danger[data-armed="true"] { background: var(--warn); color: var(--panel); border-color: var(--warn); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1150px) {
+  .app { grid-template-columns: 210px minmax(0, 1fr); }
+  .slate-pane { grid-column: 1 / -1; }
+  .slate { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .strip { flex-direction: row; max-height: none; overflow-x: auto; }
+  .strip-head { display: none; }
+  .shot { width: 170px; flex: none; }
+  .add-shot { flex: none; }
+  .status { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <h1 class="brand">Scene Board</h1>
+  <div class="scenes" id="scenes" aria-label="Scenes"></div>
+  <form class="new-scene" id="newSceneForm">
+    <input id="newSceneName" placeholder="New scene, e.g. Ep 2 Lighthouse" aria-label="New scene name">
+    <button class="btn" type="submit">Add scene</button>
+  </form>
+  <div class="status" id="status" role="status">Connecting</div>
+</header>
+
+<main class="app">
+  <aside class="pane strip" id="strip" aria-label="Shots">
+    <div class="strip-head"><span class="label">Shots</span><span class="runtime" id="runtime">0.0 s</span></div>
+    <div id="shotList"></div>
+    <button class="add-shot" id="addShot" type="button">+ Add shot</button>
+  </aside>
+
+  <section class="pane stage" aria-label="Frame">
+    <div class="toolbar">
+      <div class="group" id="tools" role="group" aria-label="Drawing tool">
+        <button class="tool" data-tool="pen" title="Pen (P)">Pen</button>
+        <button class="tool" data-tool="line" title="Line (L)">Line</button>
+        <button class="tool" data-tool="arrow" title="Arrow (A)">Arrow</button>
+        <button class="tool" data-tool="rect" title="Box (R)">Box</button>
+        <button class="tool" data-tool="ellipse" title="Circle (O)">Circle</button>
+        <button class="tool" data-tool="text" title="Label (T)">Label</button>
+        <button class="tool" data-tool="eraser" title="Eraser (E)">Eraser</button>
+      </div>
+      <div class="group" id="colors" role="group" aria-label="Ink meaning"></div>
+      <div class="group" role="group" aria-label="Line weight">
+        <button class="tool" data-width="3">Thin</button>
+        <button class="tool" data-width="6">Bold</button>
+      </div>
+      <div class="group" role="group" aria-label="Frame shape">
+        <button class="tool" data-aspect="16:9">16:9</button>
+        <button class="tool" data-aspect="9:16">9:16</button>
+      </div>
+      <div class="group" role="group" aria-label="History">
+        <button class="tool" id="undo" title="Undo (Ctrl+Z)">Undo</button>
+        <button class="tool" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+        <button class="tool" id="guides" aria-pressed="true" title="Rule of thirds">Thirds</button>
+      </div>
+    </div>
+    <div class="frame-wrap" id="frameWrap">
+      <canvas id="board" aria-label="Shot drawing"></canvas>
+      <input id="textInput" aria-label="Label text">
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">Colors carry meaning so Claude can read the plan: draw camera moves in red, subject motion in blue, light sources in amber, everything else in ink.</div>
+  </section>
+
+  <aside class="pane slate-pane" aria-label="Shot details">
+    <div class="slate" id="slate"></div>
+  </aside>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const SIZES = { "16:9": [1600, 900], "9:16": [900, 1600] };
+  const INKS = [
+    { key: "ink", hex: "#1f2328", name: "Set and blocking" },
+    { key: "cam", hex: "#d0342c", name: "Camera move" },
+    { key: "move", hex: "#1f6feb", name: "Subject motion" },
+    { key: "light", hex: "#c98500", name: "Light source" },
+  ];
+  const HEX = Object.fromEntries(INKS.map(i => [i.key, i.hex]));
+  const FRAMING = ["EWS", "WS", "MS", "MCU", "CU", "ECU", "OTS", "POV", "Insert"];
+  const ANGLE = ["Eye level", "High", "Low", "Overhead", "Dutch"];
+  const CAMERA = ["Static", "Push in", "Pull out", "Pan", "Tilt", "Tracking", "Crane", "Handheld", "Orbit", "Snap zoom"];
+  const LS_KEY = "sceneboard.local.v1";
+
+  const $ = id => document.getElementById(id);
+  const board = $("board"), ctx = board.getContext("2d");
+  const state = { shots: [], scene: null, selId: null, tool: "pen", ink: "ink", width: 3, guides: true };
+  let db = null, assets = null, cur = null, history = { undo: [], redo: [] };
+  let drawing = null, editSeq = 0;
+  const saver = { timer: null, imgTimer: null, busy: false, again: false, imgBusy: false };
+
+  // ---------- persistence ----------
+  function setStatus(text, kind) { const s = $("status"); s.textContent = text; s.dataset.kind = kind || ""; }
+  function readLocal() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } }
+  function writeLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state.shots)); } catch {} }
+
+  function body(s) {
+    return {
+      scene: s.scene || "Untitled", order: s.order || 0, title: s.title || "", duration: Number(s.duration) || 0,
+      aspect: s.aspect || "16:9", framing: s.framing || "", angle: s.angle || "", camera: s.camera || "",
+      action: s.action || "", characters: s.characters || "", props: s.props || "", audio: s.audio || "",
+      notes: s.notes || "", status: s.status || "draft", strokes: s.strokes || [], imageId: s.imageId || null,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function flush() {
+    clearTimeout(saver.timer); saver.timer = null;
+    if (!cur) return;
+    if (saver.busy) { saver.again = true; return; }
+    saver.busy = true;
+    const seq = editSeq, shot = cur;
+    try {
+      if (db) {
+        setStatus("Saving");
+        await db.doc("shots/" + shot.id).set(body(shot));
+        setStatus("Saved to board");
+      } else {
+        upsertLocal(shot); writeLocal();
+        setStatus("Saved on this device only", "err");
+      }
+      if (seq === editSeq) shot.dirty = false;
+    } catch (e) {
+      setStatus(e && e.code === "quota_exceeded" ? "Board is full: delete old shots to save" :
+        e && e.code === "invalid_argument" ? "Not saved: this drawing is too large, erase some strokes" :
+        "Not saved, will retry on your next change", "err");
+    }
+    saver.busy = false;
+    if (saver.again) { saver.again = false; flush(); }
+  }
+  function schedule(ms = 900) { editSeq++; if (cur) cur.dirty = true; clearTimeout(saver.timer); saver.timer = setTimeout(flush, ms); }
+  function scheduleImage() {
+    if (!assets) return;
+    clearTimeout(saver.imgTimer);
+    saver.imgTimer = setTimeout(uploadImage, 3500);
+  }
+  async function uploadImage() {
+    clearTimeout(saver.imgTimer); saver.imgTimer = null;
+    if (!assets || !cur || saver.imgBusy) return;
+    saver.imgBusy = true;
+    const shot = cur, old = shot.imageId;
+    try {
+      if (shot.strokes.length) {
+        const blob = await exportPng(shot);
+        const res = await assets.upload(blob, { type: "image/png" });
+        shot.imageId = res.id;
+      } else {
+        shot.imageId = null;
+      }
+      schedule(0); await flush();
+      if (old && old !== shot.imageId) assets.delete(old).catch(() => {});
+    } catch (e) {
+      if (e && e.code === "rate_limited") setStatus("Image save paused, will retry", "err");
+    }
+    saver.imgBusy = false;
+  }
+  async function flushAll() {
+    if (saver.imgTimer) await uploadImage();
+    if (saver.timer || (cur && cur.dirty)) await flush();
+  }
+
+  function upsertLocal(shot) {
+    const i = state.shots.findIndex(s => s.id === shot.id);
+    const copy = { ...body(shot), id: shot.id };
+    if (i < 0) state.shots.push(copy); else state.shots[i] = copy;
+  }
+
+  // ---------- data in ----------
+  function applyShots(list) {
+    state.shots = list.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const scenes = sceneList();
+    if (!state.scene || !scenes.includes(state.scene)) state.scene = scenes[0] || null;
+    if (cur) {
+      const remote = state.shots.find(s => s.id === cur.id);
+      if (remote && !cur.dirty && !drawing && !saver.busy && !saver.imgTimer) {
+        const keep = cur; cur = clone(remote); cur.id = keep.id; cur.strokes = cur.strokes || []; renderSlate(); renderBoard();
+      }
+    }
+    if (!cur || !state.shots.some(s => s.id === cur.id)) {
+      const first = shotsInScene()[0];
+      if (first) select(first.id, true); else { cur = null; renderSlate(); renderBoard(); }
+    }
+    renderScenes(); renderStrip();
+  }
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function sceneList() {
+    const seen = [];
+    for (const s of state.shots) if (!seen.includes(s.scene)) seen.push(s.scene);
+    if (state.scene && !seen.includes(state.scene)) seen.push(state.scene);
+    return seen;
+  }
+  const shotsInScene = () => state.shots.filter(s => s.scene === state.scene);
+
+  // ---------- rendering: scenes + strip ----------
+  function renderScenes() {
+    const wrap = $("scenes"); wrap.textContent = "";
+    for (const name of sceneList()) {
+      const b = document.createElement("button");
+      b.className = "scene-btn"; b.type = "button"; b.textContent = name;
+      b.setAttribute("aria-pressed", String(name === state.scene));
+      b.onclick = async () => { await flushAll(); state.scene = name; const f = shotsInScene()[0]; f ? select(f.id) : (cur = null, renderSlate(), renderBoard()); renderScenes(); renderStrip(); };
+      wrap.appendChild(b);
+    }
+  }
+  function renderStrip() {
+    const list = $("shotList"); list.textContent = "";
+    const shots = shotsInScene().map(s => (cur && s.id === cur.id ? cur : s));
+    let total = 0;
+    if (!state.scene) {
+      const p = document.createElement("p"); p.className = "empty";
+      p.textContent = "No scenes yet. Name one above, then add shots to it.";
+      list.appendChild(p);
+    }
+    for (const s of shots) {
+      total += Number(s.duration) || 0;
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "shot"; b.setAttribute("aria-current", String(cur && s.id === cur.id));
+      const c = document.createElement("canvas");
+      const tall = s.aspect === "9:16"; if (tall) c.className = "tall";
+      c.width = tall ? 86 : 152; c.height = tall ? 152 : 86;
+      drawStrokes(c.getContext("2d"), s.strokes || [], c.width / SIZES[s.aspect || "16:9"][0]);
+      const meta = document.createElement("div"); meta.className = "shot-meta";
+      const id = document.createElement("span"); id.className = "shot-id"; id.textContent = s.title || "Untitled";
+      const sub = document.createElement("span"); sub.className = "shot-sub";
+      sub.textContent = [(Number(s.duration) || 0) + " s", s.framing, s.camera].filter(Boolean).join(" · ");
+      const pill = document.createElement("span"); pill.className = "pill" + (s.status === "ready" ? " ready" : "");
+      pill.textContent = s.status === "ready" ? "Ready for Gauntlet" : "Draft";
+      meta.append(id, sub, pill); b.append(c, meta);
+      b.onclick = () => select(s.id);
+      list.appendChild(b);
+    }
+    $("runtime").textContent = total.toFixed(1) + " s";
+    $("addShot").disabled = !state.scene;
+  }
+
+  async function select(id, quiet) {
+    if (!quiet) await flushAll();
+    const s = state.shots.find(x => x.id === id); if (!s) return;
+    cur = clone(s); cur.id = id; cur.strokes = cur.strokes || []; cur.dirty = false;
+    history = { undo: [], redo: [] };
+    renderSlate(); renderBoard(); renderStrip(); syncToolbar();
+  }
+
+  // ---------- rendering: slate ----------
+  function chipGroup(label, options, field) {
+    const f = document.createElement("div"); f.className = "field";
+    const l = document.createElement("span"); l.className = "label"; l.textContent = label;
+    const g = document.createElement("div"); g.className = "chips"; g.setAttribute("role", "group"); g.setAttribute("aria-label", label);
+    for (const o of options) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = o;
+      b.setAttribute("aria-pressed", String(cur[field] === o));
+      b.onclick = () => { cur[field] = cur[field] === o ? "" : o; for (const x of g.children) x.setAttribute("aria-pressed", String(cur[field] === x.textContent)); schedule(); renderStrip(); };
+      g.appendChild(b);
+    }
+    f.append(l, g); return f;
+  }
+  function textField(label, field, opts = {}) {
+    const f = document.createElement("label"); f.className = "field";
+    const l = document.createElement("span"); l.className = "label"; l.textContent = label;
+    const el = document.createElement(opts.area ? "textarea" : "input");
+    el.id = "f_" + field; if (opts.type) el.type = opts.type; if (opts.step) el.step = opts.step; if (opts.min != null) el.min = opts.min;
+    el.placeholder = opts.ph || ""; el.value = cur[field] ?? "";
+    el.oninput = () => { cur[field] = opts.type === "number" ? Number(el.value) : el.value; schedule(); if (opts.strip) renderStrip(); };
+    f.append(l, el); return f;
+  }
+  function renderSlate() {
+    const slate = $("slate"); slate.textContent = "";
+    if (!cur) {
+      const p = document.createElement("p"); p.className = "empty";
+      p.textContent = state.scene ? "Add a shot to start planning this scene." : "Create a scene to start.";
+      slate.appendChild(p); return;
+    }
+    const top = document.createElement("div"); top.className = "row2";
+    top.append(textField("Shot", "title", { ph: "1A", strip: true }), textField("Seconds", "duration", { type: "number", step: "0.5", min: 0, strip: true }));
+    slate.append(top,
+      chipGroup("Framing", FRAMING, "framing"),
+      chipGroup("Angle", ANGLE, "angle"),
+      chipGroup("Camera", CAMERA, "camera"),
+      textField("Action beats, in order", "action", { area: true, ph: "Oliver lifts the fruit to the scanner. It bursts. He freezes." }),
+      textField("Characters (bible names)", "characters", { ph: "Oliver Simple" }),
+      textField("Props (bible names)", "props", { ph: "Spiked alien fruit" }),
+      textField("Sound", "audio", { ph: "Register beep, wet splat, drip" }),
+      textField("Notes for Claude", "notes", { area: true, ph: "Anything the drawing cannot say" }));
+
+    const rt = document.createElement("button"); rt.type = "button"; rt.className = "ready-toggle";
+    const setRt = () => { rt.dataset.on = String(cur.status === "ready"); rt.textContent = cur.status === "ready" ? "Ready for the Gauntlet. Tap to reopen." : "Mark shot ready for the Gauntlet"; };
+    rt.onclick = () => { cur.status = cur.status === "ready" ? "draft" : "ready"; setRt(); schedule(0); renderStrip(); };
+    setRt();
+
+    const actions = document.createElement("div"); actions.className = "actions";
+    const up = mkBtn("Move up", () => move(-1)), down = mkBtn("Move down", () => move(1));
+    const dup = mkBtn("Duplicate", duplicate);
+    const del = mkBtn("Delete shot", () => {
+      if (del.dataset.armed !== "true") { del.dataset.armed = "true"; del.textContent = "Tap again to delete"; setTimeout(() => { del.dataset.armed = "false"; del.textContent = "Delete shot"; }, 3000); return; }
+      removeShot();
+    });
+    del.classList.add("danger");
+    actions.append(up, down, dup, del);
+    slate.append(rt, actions);
+  }
+  function mkBtn(t, fn) { const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = t; b.onclick = fn; return b; }
+
+  // ---------- shot management ----------
+  const newId = () => "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  async function addShot(base) {
+    await flushAll();
+    const inScene = shotsInScene();
+    const order = state.shots.reduce((m, s) => Math.max(m, s.order || 0), 0) + 1;
+    const shot = { ...(base ? clone(base) : {}), id: newId(), scene: state.scene, order, status: "draft",
+      title: base ? (base.title || "") + " copy" : String(inScene.length + 1), duration: base ? base.duration : 5,
+      aspect: base ? base.aspect : (inScene[inScene.length - 1]?.aspect || "16:9"), imageId: null };
+    if (!base) shot.strokes = [];
+    state.shots.push({ ...body(shot), id: shot.id });
+    cur = clone(shot); cur.dirty = true; history = { undo: [], redo: [] };
+    renderStrip(); renderSlate(); renderBoard(); syncToolbar();
+    schedule(0); await flush(); if (cur.strokes.length) scheduleImage();
+  }
+  const duplicate = () => addShot(cur);
+  async function move(dir) {
+    const list = shotsInScene(); const i = list.findIndex(s => s.id === cur.id); const j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    await flushAll();
+    const other = list[j]; const a = cur.order, b = other.order;
+    cur.order = b; other.order = a; list[i].order = b;
+    state.shots.sort((x, y) => x.order - y.order); renderStrip();
+    schedule(0); await flush();
+    if (db) { try { await db.doc("shots/" + other.id).set(body(other)); } catch {} } else writeLocal();
+  }
+  async function removeShot() {
+    const gone = cur; clearTimeout(saver.timer); clearTimeout(saver.imgTimer); saver.timer = saver.imgTimer = null;
+    state.shots = state.shots.filter(s => s.id !== gone.id); cur = null;
+    try { if (db) await db.doc("shots/" + gone.id).delete(); else writeLocal(); } catch {}
+    if (assets && gone.imageId) assets.delete(gone.imageId).catch(() => {});
+    const next = shotsInScene()[0]; if (next) select(next.id, true); else { renderSlate(); renderBoard(); }
+    renderScenes(); renderStrip(); setStatus(db ? "Shot deleted" : "Shot deleted on this device");
+  }
+
+  // ---------- drawing ----------
+  function logical() { return SIZES[(cur && cur.aspect) || "16:9"]; }
+  function sizeBoard() {
+    const [LW, LH] = logical();
+    const wrap = $("frameWrap");
+    const maxH = Math.max(320, window.innerHeight - 230);
+    const w = Math.min(wrap.parentElement.clientWidth - 20, maxH * LW / LH);
+    wrap.style.width = Math.max(200, w) + "px";
+    const dpr = window.devicePixelRatio || 1;
+    board.width = Math.round(Math.max(200, w) * dpr); board.height = Math.round(Math.max(200, w) * LH / LW * dpr);
+  }
+  function renderBoard() {
+    sizeBoard();
+    const [LW, LH] = logical(); const k = board.width / LW;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, board.width, board.height);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, board.width, board.height);
+    if (state.guides) {
+      ctx.save(); ctx.strokeStyle = "rgba(38,71,201,.18)"; ctx.lineWidth = 1; ctx.setLineDash([6, 6]);
+      for (const f of [1 / 3, 2 / 3]) { line(ctx, LW * f * k, 0, LW * f * k, LH * k); line(ctx, 0, LH * f * k, LW * k, LH * f * k); }
+      ctx.setLineDash([]); ctx.strokeStyle = "rgba(38,71,201,.12)";
+      ctx.strokeRect(LW * .05 * k, LH * .05 * k, LW * .9 * k, LH * .9 * k); ctx.restore();
+    }
+    if (!cur) {
+      ctx.fillStyle = "#8a949c"; ctx.font = `${24 * k}px IBM Plex Sans, sans-serif`; ctx.textAlign = "center";
+      ctx.fillText("Select or add a shot to draw its frame", LW * k / 2, LH * k / 2); ctx.textAlign = "left"; return;
+    }
+    drawStrokes(ctx, cur.strokes, k);
+    if (drawing && drawing.preview) drawStrokes(ctx, [drawing.preview], k);
+  }
+  function line(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
+  function drawStrokes(c, strokes, k) {
+    c.save(); c.lineCap = "round"; c.lineJoin = "round";
+    for (const s of strokes) {
+      const col = HEX[s.c] || HEX.ink; c.strokeStyle = col; c.fillStyle = col; c.lineWidth = Math.max(1, s.w * k);
+      const p = s.p;
+      if (s.t === "pen") { c.beginPath(); c.moveTo(p[0] * k, p[1] * k); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i] * k, p[i + 1] * k); if (p.length === 2) c.lineTo(p[0] * k + .1, p[1] * k); c.stroke(); }
+      else if (s.t === "line" || s.t === "arrow") {
+        line(c, p[0] * k, p[1] * k, p[2] * k, p[3] * k);
+        if (s.t === "arrow") { const a = Math.atan2(p[3] - p[1], p[2] - p[0]), h = (16 + s.w * 3) * k;
+          c.beginPath(); c.moveTo(p[2] * k, p[3] * k); c.lineTo(p[2] * k - h * Math.cos(a - .45), p[3] * k - h * Math.sin(a - .45));
+          c.lineTo(p[2] * k - h * Math.cos(a + .45), p[3] * k - h * Math.sin(a + .45)); c.closePath(); c.fill(); }
+      }
+      else if (s.t === "rect") c.strokeRect(Math.min(p[0], p[2]) * k, Math.min(p[1], p[3]) * k, Math.abs(p[2] - p[0]) * k, Math.abs(p[3] - p[1]) * k);
+      else if (s.t === "ellipse") { c.beginPath(); c.ellipse((p[0] + p[2]) / 2 * k, (p[1] + p[3]) / 2 * k, Math.abs(p[2] - p[0]) / 2 * k, Math.abs(p[3] - p[1]) / 2 * k, 0, 0, Math.PI * 2); c.stroke(); }
+      else if (s.t === "text") { c.font = `600 ${s.size * k}px "IBM Plex Sans", sans-serif`; c.textBaseline = "top"; c.fillText(s.s, p[0] * k, p[1] * k); }
+    }
+    c.restore();
+  }
+  function toLogical(e) {
+    const r = board.getBoundingClientRect(), [LW, LH] = logical();
+    return [Math.round((e.clientX - r.left) / r.width * LW), Math.round((e.clientY - r.top) / r.height * LH)];
+  }
+  function pushHistory() { history.undo.push(clone(cur.strokes)); if (history.undo.length > 60) history.undo.shift(); history.redo = []; }
+  function changed() { renderBoard(); renderStrip(); schedule(); scheduleImage(); }
+
+  function samplePoints(s) {
+    const p = s.p, out = [];
+    if (s.t === "pen") { for (let i = 0; i < p.length; i += 2) out.push([p[i], p[i + 1]]); return out; }
+    if (s.t === "text") { const w = s.s.length * s.size * .55; for (let t = 0; t <= 1; t += .1) out.push([p[0] + w * t, p[1] + s.size / 2]); return out; }
+    const [x1, y1, x2, y2] = p;
+    const seg = (a, b, c, d) => { for (let t = 0; t <= 1; t += .05) out.push([a + (c - a) * t, b + (d - b) * t]); };
+    if (s.t === "line" || s.t === "arrow") seg(x1, y1, x2, y2);
+    else if (s.t === "rect") { seg(x1, y1, x2, y1); seg(x2, y1, x2, y2); seg(x2, y2, x1, y2); seg(x1, y2, x1, y1); }
+    else if (s.t === "ellipse") { const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
+      for (let a = 0; a < Math.PI * 2; a += .1) out.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); }
+    return out;
+  }
+  function eraseAt([x, y]) {
+    const r2 = 18 * 18; const before = cur.strokes.length;
+    cur.strokes = cur.strokes.filter(s => !samplePoints(s).some(([a, b]) => (a - x) ** 2 + (b - y) ** 2 < r2));
+    if (cur.strokes.length !== before) { renderBoard(); drawing.erased = true; }
+  }
+
+  board.addEventListener("pointerdown", e => {
+    if (!cur || e.button > 0) return;
+    const pt = toLogical(e);
+    if (state.tool === "text") { openText(pt, e); e.preventDefault(); return; }
+    board.setPointerCapture(e.pointerId);
+    pushHistory();
+    drawing = { start: pt, erased: false };
+    if (state.tool === "eraser") { eraseAt(pt); return; }
+    const t = state.tool === "pen" ? "pen" : state.tool;
+    drawing.preview = { t, c: state.ink, w: state.width, p: t === "pen" ? [...pt] : [...pt, ...pt] };
+    renderBoard();
+  });
+  board.addEventListener("pointermove", e => {
+    if (!drawing) return;
+    const pt = toLogical(e);
+    if (state.tool === "eraser") { eraseAt(pt); return; }
+    const s = drawing.preview;
+    if (s.t === "pen") { const n = s.p.length; if ((pt[0] - s.p[n - 2]) ** 2 + (pt[1] - s.p[n - 1]) ** 2 > 9) s.p.push(pt[0], pt[1]); }
+    else { s.p[2] = pt[0]; s.p[3] = pt[1]; }
+    renderBoard();
+  });
+  function endStroke() {
+    if (!drawing) return;
+    const d = drawing; drawing = null;
+    if (state.tool === "eraser") { if (d.erased) changed(); else history.undo.pop(); return; }
+    const s = d.preview;
+    const tiny = s.t !== "pen" && Math.abs(s.p[2] - s.p[0]) < 4 && Math.abs(s.p[3] - s.p[1]) < 4;
+    if (tiny) { history.undo.pop(); renderBoard(); return; }
+    cur.strokes.push(s); changed();
+  }
+  board.addEventListener("pointerup", endStroke);
+  board.addEventListener("pointercancel", endStroke);
+
+  const ti = $("textInput"); let textAt = null;
+  function openText(pt, e) {
+    const r = board.getBoundingClientRect(), wr = $("frameWrap").getBoundingClientRect();
+    textAt = pt; ti.value = ""; ti.style.display = "block";
+    ti.style.left = (e.clientX - wr.left) + "px"; ti.style.top = (e.clientY - wr.top - 14) + "px";
+    setTimeout(() => ti.focus(), 0);
+  }
+  function commitText() {
+    if (!textAt) return; const v = ti.value.trim(); ti.style.display = "none";
+    if (v) { pushHistory(); cur.strokes.push({ t: "text", c: state.ink, w: 1, size: state.width > 3 ? 44 : 32, p: textAt, s: v.slice(0, 80) }); changed(); }
+    textAt = null;
+  }
+  ti.addEventListener("keydown", e => { if (e.key === "Enter") commitText(); if (e.key === "Escape") { ti.style.display = "none"; textAt = null; } });
+  ti.addEventListener("blur", commitText);
+
+  function undo() { if (!cur || !history.undo.length) return; history.redo.push(clone(cur.strokes)); cur.strokes = history.undo.pop(); changed(); }
+  function redo() { if (!cur || !history.redo.length) return; history.undo.push(clone(cur.strokes)); cur.strokes = history.redo.pop(); changed(); }
+
+  async function exportPng(shot) {
+    const [LW, LH] = SIZES[shot.aspect || "16:9"];
+    const foot = 64, c = document.createElement("canvas"); c.width = LW; c.height = LH + foot;
+    const x = c.getContext("2d");
+    x.fillStyle = "#ffffff"; x.fillRect(0, 0, LW, LH + foot);
+    drawStrokes(x, shot.strokes, 1);
+    x.strokeStyle = "#1f2328"; x.lineWidth = 2; x.strokeRect(1, 1, LW - 2, LH - 2);
+    x.fillStyle = "#1f2328"; x.font = "600 26px 'IBM Plex Sans', sans-serif"; x.textBaseline = "middle";
+    const cap = [shot.scene, "Shot " + (shot.title || "?"), (shot.duration || 0) + " s", shot.framing, shot.angle, shot.camera].filter(Boolean).join("  |  ");
+    x.fillText(cap, 16, LH + foot / 2);
+    let lx = LW - 16; x.font = "500 20px 'IBM Plex Sans', sans-serif"; x.textAlign = "right";
+    for (const i of [...INKS].reverse()) { x.fillStyle = i.hex; x.fillText(i.name, lx, LH + foot / 2); lx -= x.measureText(i.name).width + 26; }
+    return new Promise(res => c.toBlob(res, "image/png"));
+  }
+
+  // ---------- toolbar ----------
+  function syncToolbar() {
+    for (const b of document.querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", String(b.dataset.tool === state.tool));
+    for (const b of document.querySelectorAll("[data-width]")) b.setAttribute("aria-pressed", String(Number(b.dataset.width) === state.width));
+    for (const b of document.querySelectorAll("[data-aspect]")) { b.setAttribute("aria-pressed", String(cur && cur.aspect === b.dataset.aspect)); b.disabled = !cur; }
+    for (const b of document.querySelectorAll("[data-ink]")) b.setAttribute("aria-pressed", String(b.dataset.ink === state.ink));
+    $("guides").setAttribute("aria-pressed", String(state.guides));
+    board.style.cursor = state.tool === "text" ? "text" : state.tool === "eraser" ? "cell" : "crosshair";
+  }
+  for (const i of INKS) {
+    const b = document.createElement("button"); b.className = "swatch"; b.dataset.ink = i.key; b.title = i.name; b.setAttribute("aria-label", i.name);
+    const d = document.createElement("span"); d.style.background = i.hex; b.appendChild(d);
+    b.onclick = () => { state.ink = i.key; if (state.tool === "eraser") state.tool = "pen"; syncToolbar(); };
+    $("colors").appendChild(b);
+    const l = document.createElement("span"); const dot = document.createElement("i"); dot.style.background = i.hex; l.append(dot, i.name); $("legend").appendChild(l);
+  }
+  document.querySelectorAll("[data-tool]").forEach(b => b.onclick = () => { state.tool = b.dataset.tool; syncToolbar(); });
+  document.querySelectorAll("[data-width]").forEach(b => b.onclick = () => { state.width = Number(b.dataset.width); syncToolbar(); });
+  document.querySelectorAll("[data-aspect]").forEach(b => b.onclick = () => {
+    if (!cur || cur.aspect === b.dataset.aspect) return;
+    const [ow, oh] = SIZES[cur.aspect], [nw, nh] = SIZES[b.dataset.aspect];
+    pushHistory();
+    cur.strokes = cur.strokes.map(s => ({ ...s, p: s.p.map((v, i) => Math.round(i % 2 ? v / oh * nh : v / ow * nw)) }));
+    cur.aspect = b.dataset.aspect; syncToolbar(); changed();
+  });
+  $("undo").onclick = undo; $("redo").onclick = redo;
+  $("guides").onclick = () => { state.guides = !state.guides; syncToolbar(); renderBoard(); };
+  $("addShot").onclick = () => addShot();
+  $("newSceneForm").addEventListener("submit", async e => {
+    e.preventDefault(); const name = $("newSceneName").value.trim().slice(0, 60); if (!name) return;
+    $("newSceneName").value = ""; await flushAll(); state.scene = name; cur = null; renderScenes(); await addShot();
+    renderScenes();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.target.closest("input, textarea")) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    const map = { p: "pen", l: "line", a: "arrow", r: "rect", o: "ellipse", t: "text", e: "eraser" };
+    if (!e.ctrlKey && !e.metaKey && map[e.key.toLowerCase()]) { state.tool = map[e.key.toLowerCase()]; syncToolbar(); }
+  });
+  let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderBoard, 120); });
+  window.addEventListener("pagehide", () => { if (cur && cur.dirty) flush(); });
+
+  // ---------- boot ----------
+  syncToolbar(); renderScenes(); renderStrip(); renderSlate(); renderBoard();
+  setStatus("Connecting");
+  const local = readLocal();
+  const start = async () => {
+    const api = window.claude && window.claude.use ? window.claude : null;
+    db = api ? await api.use("db").catch(() => null) : null;
+    assets = api ? await api.use("assets").catch(() => null) : null;
+    if (!db) { setStatus("Offline: saving on this device only", "err"); applyShots(local); return; }
+    setStatus("Connected");
+    db.collection("shots").onSnapshot(
+      snap => applyShots(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+      () => setStatus("Lost connection to the board. Reload to reconnect.", "err"));
+  };
+  start();
+})();
+</script>

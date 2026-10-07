@@ -16,6 +16,9 @@ Nothing is generated until every detail is locked. Skipping a gate wastes credit
 
 Model routing defaults: stills `gpt_image_2_5`; dance or complex choreography uses Genjutsu motion transfer (`hf_mult_motion_control`) with a real reference clip, never text alone; on-screen text via Veo or added in the edit; Veo 3.1 takes only a start frame, so build start frames from bible references.
 
+## scene-board/
+Whiteboard for gate 2, published at https://claude.ai/artifact/4zu6Y1woE7LCcc3VHvg4Zi (republish from `scene-board/index.html` to keep the URL). Each shot is a doc in the `shots` collection: slate fields (scene, order, title, duration, aspect, framing, angle, camera, action, characters, props, audio, notes, status), vector `strokes`, and `imageId`, the latest PNG export of the drawing. To read a plan: `ArtifactData` list `shots`, then `Artifact` read with `path` = imageId to view each drawing. Ink colors mean: ink = set and blocking, red = camera move, blue = subject motion, amber = light source. Only shots with status `ready` go to the Gauntlet.
+
 ## bible/
 Locked character and prop descriptions plus approved reference image/job IDs. Templates: `bible/characters/_TEMPLATE.md`, `bible/props/_TEMPLATE.md`. Entries marked DRAFT are not locked yet and need user sign-off before use.
 
