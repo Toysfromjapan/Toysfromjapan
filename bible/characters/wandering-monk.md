@@ -1,18 +1,23 @@
 # The Wandering Monk (name TBD)
 
-Status: DRAFT (proposed design, needs user sign-off before any generation)
+Status: DRAFT (user description received 2026-10-14; open questions below must be answered before LOCKED)
 Project: Kung Fu Cypher
 
 ## Who he is
-A drifting monk in his late 50s whose verses are his kung fu. He walks village to village and wins cyphers with rhythm, wit and calm. Keeps time on a wooden fish, the hollow temple block monks use to pace their chanting.
+A drifting master in his 50s whose verses are his kung fu. His staff ends in a wireless microphone instead of a blade, and he carries his beats on his hip.
 
 ## Prompt block (paste verbatim into every prompt)
-> An original Chinese man in his late 50s, wiry and lean with ropy forearms, about 5 foot 7. Weathered sun-darkened skin with deep laugh lines, crow's feet and a slightly crooked broken nose. Shaved head with short grey stubble and nine small faded ordination scar dots on the crown. Thick salt-and-pepper eyebrows that grow long at the outer ends, a close-cropped grey beard and moustache. Narrow dark eyes in a permanent amused squint, one gold-capped canine tooth that shows when he grins.
+> An original African American man in his 50s, 5 foot 9 and 150 pounds, lean and wiry. Brown eyes. A scar over his left eye running from his left eyebrow down to his cheekbone. A long kung fu master beard and slightly long eyebrows. [HEAD HAIR: open question] [BEARD COLOR: open question]
 
 ## Wardrobe sets
 | Set | When used | Prompt text (verbatim) |
 |---|---|---|
-| road | default | faded patched ochre-saffron outer robe worn off the right shoulder over a grey cotton inner robe, sleeves tied back with hemp rope; a long string of large dark wooden prayer beads with one bead replaced by a small brass bell; a lacquered red wooden fish temple block and its striker hanging from a rope belt; a dried gourd flask at the hip; off-white cloth leg wrappings and worn straw sandals; a woven bamboo hat slung on his back |
+| road | default | loose baggy brown pants and a matching brown shirt; a black compact sampler beat machine with rubber pads (Roland SP-404MKII style) hanging from a belt loop at his waist |
+
+## Props
+| Prop | Prompt text (verbatim) |
+|---|---|
+| Mic staff | a long wooden staff held in his right hand, topped like a spear with a full black handheld wireless microphone mounted where the spearhead would be, mesh grille pointing up |
 
 ## Reference IDs (Higgsfield)
 | Kind | ID | Notes |
@@ -20,10 +25,17 @@ A drifting monk in his late 50s whose verses are his kung fu. He walks village t
 | Character sheet | (not generated yet) | |
 
 ## Never
-Modern objects, microphones, jewelry other than the beads, a long white flowing beard, a clean new robe, a muscular bodybuilder physique, a likeness of any real actor.
+Staff in the left hand, scar on the right eye, a likeness of any real actor.
 
-## Voice and behavior
-Speaks slow, raps fast. Taps the wooden fish to set the tempo before every verse. Stands still while opponents move.
+## Known failure modes (expected, check in QC)
+- Scar side flips on mirrored or back views: check it is on HIS left eye (viewer's right in a front view).
+- Models garble brand logos and pad layouts: keep the sampler small and readable as a black pad box, do not rely on legible "Roland" text.
+- Microphone may render as a metal ball or a spear blade: restate "handheld wireless microphone" every time.
 
-## Known failure modes
-(to fill in after first renders)
+## Open questions
+1. Age: still 50s (from the earlier answer "Older master, 50s+")?
+2. Head hair: shaved, bald, braided, top knot, or something else?
+3. Beard color: grey, white, salt and pepper, or black?
+4. Shirt style: wrap-front kung fu tunic, frog-button jacket, or a loose tee?
+5. Footwear: kung fu cloth shoes, straw sandals, or barefoot?
+6. Keep any monk elements (prayer beads, bamboo hat)?

@@ -5,7 +5,7 @@ Short series. A character in a mythic early China where battles are fought as un
 ## Rules of the world
 - Mythic, not historical. Borrow freely from early China (Shang to Han) but never let accuracy beat the look.
 - Rural China on the surface, an underground battle scene beneath it. Every arena is a real rural space repurposed for a cypher.
-- No modern objects on screen: sound comes from drums, gongs, bells, clapping, stomping and voice.
+- Mostly no modern objects, with deliberate exceptions that carry the joke: the hero's microphone staff and his sampler beat machine. Everything else is drums, gongs, bells, clapping, stomping and voice.
 
 ## Look (to be locked with the user)
 - 1980s Hong Kong studio kung fu: painted sky backdrops, soundstage courtyards, saturated primaries, colored gel light (red, green, amber), crash zooms and whip pans, 35 mm grain.
