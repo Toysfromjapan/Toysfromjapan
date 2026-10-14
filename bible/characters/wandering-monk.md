@@ -22,7 +22,7 @@ A drifting master in his 50s whose verses are his kung fu. His staff ends in a w
 ## Reference IDs (Higgsfield)
 | Kind | ID | Notes |
 |---|---|---|
-| Character sheet | (not generated yet) | |
+| Character sheet v1 (candidate) | 69dd2059-5429-4651-94ed-79fa4b56b10f | 4K turnaround + head CU + prop details; fails: staff in left hand on back view, hair sides opposite to assumption, beard shorter than "long" |
 
 ## Never
 Staff in the left hand, scar on the right eye, a likeness of any real actor.
