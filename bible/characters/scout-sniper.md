@@ -25,6 +25,9 @@ Project: TBD (MAD City?)
 | User ref: turnaround | 278d6108-fef8-47f3-90aa-d993f8dafde8 | style and gear; hood only, no helmet |
 | User ref: firing poses | 1eb0f8e9-dad5-44d0-8e30-88a4f236fe79 | kneeling, braced, prone; desert light |
 | User ref: rooftop scope | 972a4375-0f69-4f34-8c33-6c148b43b66c | fisheye 3-point perspective down the scope |
+| Turnaround v1 | e7ce2dd7-f62f-4fda-9aa1-37702ca6326c | style and gear right; FAIL: two eye holes with orange lenses, mask too tight |
+| Action poses v1 | ef735736-a61f-4d10-8e29-8e5f39e195a3 | PASS: four 3-point perspective panels, single orange lens, helmet on |
+| Gear breakdown v1 | 95bf17e2-bc89-4f85-8eb7-ac4bdc898fa8 | flat gear layout and swatches good; FAIL: head close-up shows two lenses, helmet tinted blue not sage |
 
 ## Never
 Visible face or skin of the head, orange lens on the right eye, two eye holes, clean undamaged helmet, photorealism.
@@ -32,3 +35,4 @@ Visible face or skin of the head, orange lens on the right eye, two eye holes, c
 ## Known failure modes
 - Lens side flips between views: his left eye is the viewer's right in a front view.
 - Helmet may disappear (ref 1 has none): restate it every time.
+- Models default to goggles over BOTH eyes: say "a single eye hole on the left side only, the right side of the mask is solid fabric with no opening".
