@@ -1,6 +1,6 @@
 # Scout Sniper (name TBD)
 
-Status: LOCKED from the user's description (2026-10-20); project and name to confirm
+Status: LOCKED from the user's description (2026-10-20); project and name to confirm; helmet color set to sage olive by default
 Project: TBD (MAD City?)
 
 ## Style block (paste verbatim)
@@ -28,6 +28,8 @@ Project: TBD (MAD City?)
 | Turnaround v1 | e7ce2dd7-f62f-4fda-9aa1-37702ca6326c | style and gear right; FAIL: two eye holes with orange lenses, mask too tight |
 | Action poses v1 | ef735736-a61f-4d10-8e29-8e5f39e195a3 | PASS: four 3-point perspective panels, single orange lens, helmet on |
 | Gear breakdown v1 | 95bf17e2-bc89-4f85-8eb7-ac4bdc898fa8 | flat gear layout and swatches good; FAIL: head close-up shows two lenses, helmet tinted blue not sage |
+| Turnaround v2 | 247a500a-974e-4451-9b79-1bdb6b1bcd67 | helmet now sage; one orange lens; FAIL: front view still shows a bare second eye opening, mask still tight |
+| Gear breakdown v2 | 3e963dbf-2d74-44b7-babf-f572c2a83bc5 | PASS: single eye hole with orange lens, loose folded mask, sage damaged helmet. Best mask reference |
 
 ## Never
 Visible face or skin of the head, orange lens on the right eye, two eye holes, clean undamaged helmet, photorealism.
